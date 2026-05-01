@@ -41,17 +41,27 @@
         // CORs 설정이 origin: "*"이어야 함 CORs setting must be origin: "*"
         const socket = io("http://localhost:3000");
 
+        const nickname = "User_" + Math.floor(Math.random() * 100);
+        
         // 연결 성공 시 If connection is successful
         socket.on("connect", () => {
             statusBox.className = "status-box connected";
             statusText.innerText = "연결됨 (ID: " + socket.id + ")";
             addLog("서버에 연결되었습니다.");
+
+            socket.emit('join_auto', nickname);
         });
 
         // 인원수 업데이트 수신 Receive user count updates
-        socket.on("user_count_update", (count) => {
-            userCountSpan.innerText = count;
-            addLog(`현재 인원 업데이트: ${count}명`);
+        socket.on("room_update", (data) => {
+            const { roomId, users } = data;
+
+            // UI 유저 수 업데이트
+            userCountSpan.innerText = users.length;
+
+            // 로그에 방 ID와 현재 접속자 명단 출력
+            const userNames = users.map(u => u.nickname).join(', ');
+            addLog(`[qkd: ${roomId}] 현재 인원: ${users.length}명 (${userNames})`);
         });
 
         // 5명 초과 시 서버에서 보내는 에러 메시지 Receive error messages when trying to enter a full room
