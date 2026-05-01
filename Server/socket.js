@@ -17,6 +17,7 @@ module.exports = (server) => {
             socket.currentRoom = roomId;
             socket.nickname = nickname;
 
+            console.log(`[SYSTEM] room update: ${roomId} (users: ${nickname}, total: ${users.length}/5)`);
             io.to(roomId).emit('room_update', { roomId, users });
         });
 
@@ -24,11 +25,16 @@ module.exports = (server) => {
         socket.on('disconnect', () => {
             if (socket.currentRoom) {
                 const users = removeUserFromRoom(socket.currentRoom, socket.id);
+                
+                console.log(`[SYSTEM] user disconnected: ${socket.nickname} from room ${socket.currentRoom}`);
+                
                 if (users) {
                     io.to(socket.currentRoom).emit('room_update', { 
                         roomId: socket.currentRoom, 
                         users 
                     });
+                } else {
+                    console.log(`[SYSTEM] room ${socket.currentRoom} is now empty and has been deleted.`);
                 }
             }
         });

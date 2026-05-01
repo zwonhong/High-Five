@@ -14,6 +14,7 @@ const findOrCreateRoom = () => {
     if (!targetRoomId) {
         targetRoomId = `room_${Date.now()}`;
         rooms.set(targetRoomId, { users: [] });
+        console.log(`[SYSTEM] new room created: ${targetRoomId}`);
     }
     return targetRoomId;
 };
@@ -34,6 +35,7 @@ const removeUserFromRoom = (roomId, socketId) => {
         room.users = room.users.filter(u => u.id !== socketId);
         if (room.users.length === 0) {
             rooms.delete(roomId);
+            console.log(`[SYSTEM] empty room deleted: ${roomId}`);
             return null;
         }
         return room.users;
