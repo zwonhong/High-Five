@@ -14,48 +14,88 @@
     </style>
 </head>
 <body>
-    <h1>High-Five 서버 입장 테스트</h1>
+    <h1>High-Five 서버 테스트</h1>
     
-    <div id="statusBox" class="status-box disconnected">
-        상태: <span id="statusText">연결 시도 중...</span>
+    <!-- 1. 입장 전: 닉네임 입력 구역 -->
+    <div id="loginArea">
+        <input type="text" id="nicknameInput" placeholder="닉네임을 입력하세요">
+        <button onclick="joinGame()">입장하기</button>
     </div>
 
-    <p class="info">현재 방 인원: <span id="userCount">0</span> / 5</p>
+    <!-- 2. 입장 후: 채팅 및 정보 구역 (처음엔 숨김) -->
+    <div id="gameArea" style="display: none;">
+        <div id="statusBox" class="status-box disconnected">
+            상태: <span id="statusText">연결 시도 중...</span> | 
+            방 ID: <span id="roomIdText">-</span>
+        </div>
 
-    <h3>실시간 로그</h3>
-    <div id="log"></div>
+        <p class="info">현재 방 인원: <span id="userCount">0</span> / 5</p>
+
+        <h3>Chat - log</h3>
+        <div id="log"></div>
+
+        <!-- 메시지 입력 구역 -->
+        <div style="margin-top: 10px;">
+            <input type="text" id="msgInput" placeholder="메시지를 입력하세요" style="width: 80%; padding: 5px;" onkeypress="if(event.keyCode==13) sendChat()">
+            <button onclick="sendChat()" style="padding: 5px 15px;">전송</button>
+        </div>
+    </div>
 
     <script>
         const logDiv = document.getElementById('log');
         const userCountSpan = document.getElementById('userCount');
         const statusBox = document.getElementById('statusBox');
         const statusText = document.getElementById('statusText');
+        const roomIdText = document.getElementById('roomIdText');
 
-        function addLog(message) {
+        // 소켓 초기화 (자동 연결 방지)
+        const socket = io("http://localhost:3000", { autoConnect: false });
+
+        // 로그 출력 함수 (sysmsg / chat 구분))
+        function addLog(message, isChat = false) {
             const time = new Date().toLocaleTimeString();
-            logDiv.innerHTML += `[${time}] ${message}<br>`;
+            // 채팅일 경우 닉네임 부분을 Bold 처리
+            const logContent = isChat ? message : `[시스템] ${message}`;
+            logDiv.innerHTML += `<div><small>${time}</small> ${logContent}</div>`;
             logDiv.scrollTop = logDiv.scrollHeight;
         }
+        // 입장 함수 (버튼 클릭 시 호출)
+        function joinGame() {
+            const nickname = document.getElementById('nicknameInput').value;
+            if (!nickname) return alert("닉네임을 입력해주세요!");
 
-        // 1. 서버 접속 (app.js에서 설정한 포트 3000) Connect to the server (port 3000 as set in app.js)
-        // CORs 설정이 origin: "*"이어야 함 CORs setting must be origin: "*"
-        const socket = io("http://localhost:3000");
+            socket.connect(); // 서버 연결 시작
+            
+            // 연결 성공 시 join_auto 실행되도록 일회성 등록
+            socket.once("connect", () => {
+                socket.emit('join_auto', nickname);
+                document.getElementById('loginArea').style.display = 'none';
+                document.getElementById('gameArea').style.display = 'block';
+                
+                statusBox.className = "status-box connected";
+                statusText.innerText = "연결됨 (ID: " + socket.id + ")";
+                addLog(`서버에 연결되었습니다. (닉네임: ${nickname})`);
+            });
+        }
 
-        const nickname = "User_" + Math.floor(Math.random() * 100);
-        
-        // 연결 성공 시 If connection is successful
-        socket.on("connect", () => {
-            statusBox.className = "status-box connected";
-            statusText.innerText = "연결됨 (ID: " + socket.id + ")";
-            addLog("서버에 연결되었습니다.");
+        // 채팅 전송 함수
+        function sendChat() {
+            const input = document.getElementById('msgInput');
+            if (!input.value.trim()) return;
 
-            socket.emit('join_auto', nickname);
+            socket.emit('send_chat', input.value); // 서버로 전송
+            input.value = ''; // 입력창 초기화
+        }
+
+        // 채팅 수신
+        socket.on("receive_chat", (data) => {
+            addLog(`<strong>${data.sender}:</strong> ${data.message}`, true);
         });
 
         // 인원수 업데이트 수신 Receive user count updates
         socket.on("room_update", (data) => {
             const { roomId, users } = data;
-
+            roomIdText.innerText = roomId;
             // UI 유저 수 업데이트
             userCountSpan.innerText = users.length;
 
