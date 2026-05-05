@@ -1,17 +1,29 @@
 const { Server } = require('socket.io');
+const { createClient } = require("redis"); // 멀티 서버를 위한 redis 클라이언트 추가
+const { createAdapter } = require("@socket.io/redis-adapter"); // 멀티 서버를 위한 redis 어댑터 추가
 const { findOrCreateRoom, addUserToRoom, removeUserFromRoom } = require('./roomManager');
 
 // 모듈로 서버를 내보내기 Export server as module
-module.exports = (server) => {
+module.exports = async (server) => {
     const io = new Server(server, {
-        cors: { origin: "*", methods: ["GET", "POST"] }
+        cors: { origin: true, methods: ["GET", "POST"] }
     });
+
+    // 1. Redis 연결 설정 (도커 환경의 redis-db 서비스 이름 사용) Redis connection setup (using redis-db service name in Docker environment)
+    const pubClient = createClient({ url: "redis://redis-db:6379" });
+    const subClient = pubClient.duplicate();
+
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+    console.log("[SYSTEM] Redis Adapter Connected!");
+
+    // 2. 어댑터 장착 (이제 서버간 통신이 가능해짐) Attach adapter (now inter-server communication is possible)
+    io.adapter(createAdapter(pubClient, subClient));
 
     // 연결 핸들링 Connection Handling
     io.on('connection', (socket) => {
-        socket.on('join_auto', (nickname) => {
-            const roomId = findOrCreateRoom();
-            const result = addUserToRoom(roomId, { id: socket.id, nickname });
+        socket.on('join_auto', async (nickname) => {
+            const roomId = await findOrCreateRoom();
+            const result = await addUserToRoom(roomId, { id: socket.id, nickname });
 
             if (result) {
                 const { users, isStarted } = result;
@@ -68,10 +80,10 @@ module.exports = (server) => {
         });
 
         // 연결 종료 핸들링 Disconnection handling
-        socket.on('disconnect', () => {
+        socket.on('disconnect', async () => {
             if (socket.currentRoom) {
                 // roomManager.js에서 객체를 받아옴
-                const result = removeUserFromRoom(socket.currentRoom, socket.id);
+                const result = await removeUserFromRoom(socket.currentRoom, socket.id);
                 
                 console.log(`[SYSTEM] user disconnected: ${socket.nickname} from room ${socket.currentRoom}`);
                 
