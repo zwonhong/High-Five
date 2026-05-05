@@ -6,10 +6,10 @@ const setupSocket = require('./socket');
 const app = express();
 const server = http.createServer(app);
 
-// 정적 파일 폴더 설정 (현재 폴더를 기본으로 설정)
+// 정적 파일 폴더 설정 (현재 폴더를 기본으로 설정) Set static file folder (set current folder as default)
 app.use(express.static(__dirname)); 
 
-// Test route to check if the server is running
+// 서버 실행중 실행경로 확인 Test route to check if the server is running
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'test.html'));
 });
