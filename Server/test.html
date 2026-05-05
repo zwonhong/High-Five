@@ -105,8 +105,16 @@
         });
 
         // 캔버스 관련 변수 및 설정 Canvas related variables and settings
+        let isGameStarted = false;
+        
         const canvas = document.getElementById('drawingCanvas');
         const ctx = canvas.getContext('2d');
+        
+        // 초기 상태: 캔버스 비활성화 Initial state: canvas disabled
+        canvas.style.opacity = "0.5";         // 반투명하게 make it semi-transparent
+        canvas.style.pointerEvents = "none";  // 마우스 클릭/이벤트 무시 ignore mouse events
+        canvas.style.backgroundColor = "#f0f0f0"; // 비활성화 배경색 disabled background color
+        
         let drawing = false;
         let prevX = 0, prevY = 0;
 
@@ -140,7 +148,8 @@
         });
 
         canvas.addEventListener('mousemove', (e) => {
-            if (!drawing) return;
+            // 게임이 시작되어야 활성화 Activate only when game is started
+            if (!drawing || !isGameStarted) return;
 
             const currX = e.offsetX;
             const currY = e.offsetY;
@@ -183,6 +192,19 @@
             // 로그에 방 ID와 현재 접속자 명단 출력 Print current room ID and user list in log
             const userNames = users.map(u => u.nickname).join(', ');
             addLog(`[qkd: ${roomId}] 현재 인원: ${users.length}명 (${userNames})`);
+        });
+
+        // 서버로부터 게임 시작 신호 수신 Receive game start signal from server
+        socket.on('game_start', (data) => {
+            isGameStarted = true; // 게임 시작 플래그 활성화 Activate game start flag
+            
+            // 캔버스 UI 활성화 Activate canvas UI
+            canvas.style.opacity = "1.0";
+            canvas.style.pointerEvents = "auto";
+            canvas.style.backgroundColor = "#fff";
+            canvas.style.border = "2px solid #2e7d32"; // 시작 시 테두리 색상 변경 Change border color when game starts
+            
+            addLog("5명이 모두 모였습니다! 게임을 시작합니다.", false);
         });
 
         // 5명 초과 시 서버에서 보내는 에러 메시지 Receive error messages when trying to enter a full room
