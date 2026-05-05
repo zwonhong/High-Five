@@ -31,6 +31,18 @@
 
         <p class="info">현재 방 인원: <span id="userCount">0</span> / 5</p>
 
+        <!-- 3. 캔버스 영역 Canvas Area--> 
+        <h3>Canvas</h3>
+        <div style="margin-bottom: 10px;">
+            <!-- 실제 그림이 그려질 도화지 -->
+            <canvas id="drawingCanvas" width="500" height="400" style="border: 1px solid #000; background: #fff; cursor: crosshair; display: block;"></canvas>
+            
+            <!-- 캔버스 조작 버튼 -->
+            <div style="margin-top: 5px;">
+                <button onclick="clearCanvas()">전체 지우기</button>
+            </div>
+        </div>
+
         <h3>Chat - log</h3>
         <div id="log"></div>
 
@@ -84,12 +96,81 @@
             if (!input.value.trim()) return;
 
             socket.emit('send_chat', input.value); // 서버로 전송 Send to server
-            input.value = ''; // 입력창 초기화 // clean input field
+            input.value = ''; // 입력창 초기화 clean input field
         }
 
         // 채팅 수신 Receive chat messages
         socket.on("receive_chat", (data) => {
             addLog(`<strong>${data.sender}:</strong> ${data.message}`, true);
+        });
+
+        // 캔버스 관련 변수 및 설정 Canvas related variables and settings
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+        let prevX = 0, prevY = 0;
+
+        // 선 스타일 설정 (색상, 두께 등) Set line style (color, width, etc.)
+        ctx.strokeStyle = '#000'; // 검정색 black
+        ctx.lineWidth = 2;        // 두께 2
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        // 선 그리기 함수 Draw line function
+        function draw(x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        // 전체 지우기 함수 Clear canvas function
+        function clearCanvas() {
+            // 내 화면 지우기 Clear my canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 서버에 지우기 신호 전송 Send clear signal to server
+            socket.emit('clear_canvas');
+        }
+
+        // 마우스 이벤트 리스너 Mouse event listeners
+        canvas.addEventListener('mousedown', (e) => {
+            drawing = true;
+            [prevX, prevY] = [e.offsetX, e.offsetY];
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!drawing) return;
+
+            const currX = e.offsetX;
+            const currY = e.offsetY;
+
+            // 1. 내 화면에 선 그리기 Draw on my canvas
+            draw(prevX, prevY, currX, currY);
+
+            // 2. 서버로 좌표 전송 (상대방 공유용) Send coordinates to server (for sharing with others)
+            socket.emit('draw_data', { 
+                prevX: Math.round(prevX), 
+                prevY: Math.round(prevY), 
+                currX: Math.round(currX), 
+                currY: Math.round(currY) 
+            });
+
+            [prevX, prevY] = [currX, currY];
+        });
+
+        window.addEventListener('mouseup', () => drawing = false);
+
+        // 캔버스 소켓 수신 이벤트 Canvas socket receive event
+
+        // 상대방이 그린 데이터 수신 Receive drawing data from others
+        socket.on('receive_draw', (data) => {
+            draw(data.prevX, data.prevY, data.currX, data.currY);
+        });
+
+        // 상대방이 지운 신호 수신 Receive clear signal from others
+        socket.on('clear_canvas', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
 
         // 인원수 업데이트 수신 Receive user count updates

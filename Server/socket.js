@@ -39,6 +39,25 @@ module.exports = (server) => {
             }
         });
 
+        // 드로잉 로직 Drawing logic
+        socket.on('draw_data', (data) => {
+            const roomId = socket.currentRoom;
+            if (roomId) {
+                // socket.to(roomId)는 나를 제외한 해당 방의 모든 유저에게 전송 socket.to(roomId) sends to all users in the room except myself
+                // 내가 그린 건 이미 내 화면에 그려졌으니 중복 방지 to avoid duplication since my drawing is already on my canvas
+                socket.to(roomId).emit('receive_draw', data);
+            }
+        });
+
+        // 캔버스 지우기 로직 Canvas clear logic 
+        socket.on('clear_canvas', () => {
+            const roomId = socket.currentRoom;
+            if (roomId) {
+                // 지우기는 모든 유저(나 포함)의 화면을 동시에 지움 Clear everyone's canvas at the same time, including mine
+                io.to(roomId).emit('clear_canvas');
+            }
+        });
+
         // 연결 종료 핸들링 Disconnection handling
         socket.on('disconnect', () => {
             if (socket.currentRoom) {
