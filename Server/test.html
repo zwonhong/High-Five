@@ -16,13 +16,13 @@
 <body>
     <h1>High-Five 서버 테스트</h1>
     
-    <!-- 1. 입장 전: 닉네임 입력 구역 -->
+    <!-- 1. 입장 전: 닉네임 입력 구역 before joining: nickname input area -->
     <div id="loginArea">
         <input type="text" id="nicknameInput" placeholder="닉네임을 입력하세요">
         <button onclick="joinGame()">입장하기</button>
     </div>
 
-    <!-- 2. 입장 후: 채팅 및 정보 구역 (처음엔 숨김) -->
+    <!-- 2. 입장 후: 채팅 및 정보 구역 (처음엔 숨김) chat/info field (first hided) -->
     <div id="gameArea" style="display: none;">
         <div id="statusBox" class="status-box disconnected">
             상태: <span id="statusText">연결 시도 중...</span> | 
@@ -34,7 +34,7 @@
         <h3>Chat - log</h3>
         <div id="log"></div>
 
-        <!-- 메시지 입력 구역 -->
+        <!-- 메시지 입력 구역 msg input field--> 
         <div style="margin-top: 10px;">
             <input type="text" id="msgInput" placeholder="메시지를 입력하세요" style="width: 80%; padding: 5px;" onkeypress="if(event.keyCode==13) sendChat()">
             <button onclick="sendChat()" style="padding: 5px 15px;">전송</button>
@@ -48,10 +48,10 @@
         const statusText = document.getElementById('statusText');
         const roomIdText = document.getElementById('roomIdText');
 
-        // 소켓 초기화 (자동 연결 방지)
+        // 소켓 초기화 (자동 연결 방지) Initialize socket (auto X)
         const socket = io("http://localhost:3000", { autoConnect: false });
 
-        // 로그 출력 함수 (sysmsg / chat 구분))
+        // 로그 출력 함수 (sysmsg / chat 구분)) Log output (sysmsg / chat distinction)
         function addLog(message, isChat = false) {
             const time = new Date().toLocaleTimeString();
             // 채팅일 경우 닉네임 부분을 Bold 처리
@@ -59,14 +59,14 @@
             logDiv.innerHTML += `<div><small>${time}</small> ${logContent}</div>`;
             logDiv.scrollTop = logDiv.scrollHeight;
         }
-        // 입장 함수 (버튼 클릭 시 호출)
+        // 입장 함수 (버튼 클릭 시 호출) Join function (called when button pressed)
         function joinGame() {
             const nickname = document.getElementById('nicknameInput').value;
             if (!nickname) return alert("닉네임을 입력해주세요!");
 
-            socket.connect(); // 서버 연결 시작
+            socket.connect(); // 서버 연결 시작 Start connection to server
             
-            // 연결 성공 시 join_auto 실행되도록 일회성 등록
+            // 연결 성공 시 join_auto 실행되도록 일회성 등록 If connection is successful, emit join_auto once
             socket.once("connect", () => {
                 socket.emit('join_auto', nickname);
                 document.getElementById('loginArea').style.display = 'none';
@@ -78,16 +78,16 @@
             });
         }
 
-        // 채팅 전송 함수
+        // 채팅 전송 함수 Send chat messages
         function sendChat() {
             const input = document.getElementById('msgInput');
             if (!input.value.trim()) return;
 
-            socket.emit('send_chat', input.value); // 서버로 전송
-            input.value = ''; // 입력창 초기화
+            socket.emit('send_chat', input.value); // 서버로 전송 Send to server
+            input.value = ''; // 입력창 초기화 // clean input field
         }
 
-        // 채팅 수신
+        // 채팅 수신 Receive chat messages
         socket.on("receive_chat", (data) => {
             addLog(`<strong>${data.sender}:</strong> ${data.message}`, true);
         });
@@ -96,10 +96,10 @@
         socket.on("room_update", (data) => {
             const { roomId, users } = data;
             roomIdText.innerText = roomId;
-            // UI 유저 수 업데이트
+            // UI 유저 수 업데이트 Updata user counts
             userCountSpan.innerText = users.length;
 
-            // 로그에 방 ID와 현재 접속자 명단 출력
+            // 로그에 방 ID와 현재 접속자 명단 출력 Print current room ID and user list in log
             const userNames = users.map(u => u.nickname).join(', ');
             addLog(`[qkd: ${roomId}] 현재 인원: ${users.length}명 (${userNames})`);
         });
