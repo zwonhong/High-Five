@@ -6,14 +6,14 @@ const findOrCreateRoom = () => {
     let targetRoomId = null;
     // 모든 방을 순회하며 정원이 남은 방을 찾음 Iterate through rooms to find one with available space
     for (let [roomId, roomData] of rooms) {
-        if (roomData.users.length < MAX_USERS) {
+        if (roomData.users.length < MAX_USERS && !roomData.isStarted) {
             targetRoomId = roomId;
             break;
         }
     } // 모든 방이 다 찼으면 새 방 생성 If all rooms are full, create new room
     if (!targetRoomId) {
         targetRoomId = `room_${Date.now()}`;
-        rooms.set(targetRoomId, { users: [] });
+        rooms.set(targetRoomId, { users: [], isStarted: false });
         console.log(`[SYSTEM] new room created: ${targetRoomId}`);
     }
     return targetRoomId;
@@ -23,7 +23,13 @@ const addUserToRoom = (roomId, user) => {
     const room = rooms.get(roomId);
     if (room) {
         room.users.push(user);
-        return room.users;
+
+        // 5명이 차면 시작 가능 상태로 판단 Set room as ready to start when 5 users are in
+        if (room.users.length === 5) {
+            room.isStarted = true;
+        }
+
+        return { users: room.users, isStarted: room.isStarted }; // 객체 형태로 반환 Return as an object
     }
     return null;
 };
@@ -38,7 +44,7 @@ const removeUserFromRoom = (roomId, socketId) => {
             console.log(`[SYSTEM] empty room deleted: ${roomId}`);
             return null;
         }
-        return room.users;
+        return { users: room.users, isStarted: room.isStarted }; // 객체 형태로 반환 Return as an object
     }
 };
 

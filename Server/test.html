@@ -31,6 +31,18 @@
 
         <p class="info">현재 방 인원: <span id="userCount">0</span> / 5</p>
 
+        <!-- 3. 캔버스 영역 Canvas Area--> 
+        <h3>Canvas</h3>
+        <div style="margin-bottom: 10px;">
+            <!-- 실제 그림이 그려질 도화지 -->
+            <canvas id="drawingCanvas" width="500" height="400" style="border: 1px solid #000; background: #fff; cursor: crosshair; display: block;"></canvas>
+            
+            <!-- 캔버스 조작 버튼 -->
+            <div style="margin-top: 5px;">
+                <button onclick="clearCanvas()">전체 지우기</button>
+            </div>
+        </div>
+
         <h3>Chat - log</h3>
         <div id="log"></div>
 
@@ -84,12 +96,90 @@
             if (!input.value.trim()) return;
 
             socket.emit('send_chat', input.value); // 서버로 전송 Send to server
-            input.value = ''; // 입력창 초기화 // clean input field
+            input.value = ''; // 입력창 초기화 clean input field
         }
 
         // 채팅 수신 Receive chat messages
         socket.on("receive_chat", (data) => {
             addLog(`<strong>${data.sender}:</strong> ${data.message}`, true);
+        });
+
+        // 캔버스 관련 변수 및 설정 Canvas related variables and settings
+        let isGameStarted = false;
+        
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 초기 상태: 캔버스 비활성화 Initial state: canvas disabled
+        canvas.style.opacity = "0.5";         // 반투명하게 make it semi-transparent
+        canvas.style.pointerEvents = "none";  // 마우스 클릭/이벤트 무시 ignore mouse events
+        canvas.style.backgroundColor = "#f0f0f0"; // 비활성화 배경색 disabled background color
+        
+        let drawing = false;
+        let prevX = 0, prevY = 0;
+
+        // 선 스타일 설정 (색상, 두께 등) Set line style (color, width, etc.)
+        ctx.strokeStyle = '#000'; // 검정색 black
+        ctx.lineWidth = 2;        // 두께 2
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        // 선 그리기 함수 Draw line function
+        function draw(x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        // 전체 지우기 함수 Clear canvas function
+        function clearCanvas() {
+            // 내 화면 지우기 Clear my canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 서버에 지우기 신호 전송 Send clear signal to server
+            socket.emit('clear_canvas');
+        }
+
+        // 마우스 이벤트 리스너 Mouse event listeners
+        canvas.addEventListener('mousedown', (e) => {
+            drawing = true;
+            [prevX, prevY] = [e.offsetX, e.offsetY];
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            // 게임이 시작되어야 활성화 Activate only when game is started
+            if (!drawing || !isGameStarted) return;
+
+            const currX = e.offsetX;
+            const currY = e.offsetY;
+
+            // 1. 내 화면에 선 그리기 Draw on my canvas
+            draw(prevX, prevY, currX, currY);
+
+            // 2. 서버로 좌표 전송 (상대방 공유용) Send coordinates to server (for sharing with others)
+            socket.emit('draw_data', { 
+                prevX: Math.round(prevX), 
+                prevY: Math.round(prevY), 
+                currX: Math.round(currX), 
+                currY: Math.round(currY) 
+            });
+
+            [prevX, prevY] = [currX, currY];
+        });
+
+        window.addEventListener('mouseup', () => drawing = false);
+
+        // 캔버스 소켓 수신 이벤트 Canvas socket receive event
+
+        // 상대방이 그린 데이터 수신 Receive drawing data from others
+        socket.on('receive_draw', (data) => {
+            draw(data.prevX, data.prevY, data.currX, data.currY);
+        });
+
+        // 상대방이 지운 신호 수신 Receive clear signal from others
+        socket.on('clear_canvas', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
 
         // 인원수 업데이트 수신 Receive user count updates
@@ -102,6 +192,19 @@
             // 로그에 방 ID와 현재 접속자 명단 출력 Print current room ID and user list in log
             const userNames = users.map(u => u.nickname).join(', ');
             addLog(`[qkd: ${roomId}] 현재 인원: ${users.length}명 (${userNames})`);
+        });
+
+        // 서버로부터 게임 시작 신호 수신 Receive game start signal from server
+        socket.on('game_start', (data) => {
+            isGameStarted = true; // 게임 시작 플래그 활성화 Activate game start flag
+            
+            // 캔버스 UI 활성화 Activate canvas UI
+            canvas.style.opacity = "1.0";
+            canvas.style.pointerEvents = "auto";
+            canvas.style.backgroundColor = "#fff";
+            canvas.style.border = "2px solid #2e7d32"; // 시작 시 테두리 색상 변경 Change border color when game starts
+            
+            addLog("5명이 모두 모였습니다! 게임을 시작합니다.", false);
         });
 
         // 5명 초과 시 서버에서 보내는 에러 메시지 Receive error messages when trying to enter a full room
