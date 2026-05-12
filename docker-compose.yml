@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  # Redis 데이터베이스 서버 (Redis database server)
+  redis-db:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  # 게임 서버 1 (3001번 포트로 접속) (Game server 1 (connect on port 3001))
+  server-alpha:
+    build: ./Server
+    ports:
+      - "3001:3000"
+    environment:
+      - PORT=3000
+    depends_on:
+      - redis-db
+
+  # 게임 서버 2 (3002번 포트로 접속) (Game server 2 (connect on port 3002))
+  server-beta:
+    build: ./Server
+    ports:
+      - "3002:3000"
+    environment:
+      - PORT=3000
+    depends_on:
+      - redis-db

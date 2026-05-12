@@ -14,10 +14,18 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'test.html'));
 });
 
-setupSocket(server);
 
-const PORT = 3000;
+const start = async () => {
+  try {
+    await setupSocket(server); // 소켓 설정이 비동기이므로 await로 완료를 기다립니다. Since socket setup is asynchronous, we wait for it to complete with await.
+    const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server is running on ${PORT}`);
+    });
+  } catch (err) {
+    console.error("Error starting server:", err);
+  }
+}
+
+start();

@@ -61,7 +61,7 @@
         const roomIdText = document.getElementById('roomIdText');
 
         // 소켓 초기화 (자동 연결 방지) Initialize socket (auto X)
-        const socket = io("http://localhost:3000", { autoConnect: false });
+        const socket = io(window.location.origin, { autoConnect: false });
 
         // 로그 출력 함수 (sysmsg / chat 구분)) Log output (sysmsg / chat distinction)
         function addLog(message, isChat = false) {
