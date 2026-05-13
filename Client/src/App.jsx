@@ -1,22 +1,13 @@
-import LeftPanel from "./components/LeftPanel";
-import CanvasSection from "./components/CanvasSection";
-import UserList from "./components/UserList";
-
+import StartScreen from "./components/StartScreen";
+import GameScreen from "./components/GameScreen";
 function App() {
+  const gameStarted = false;
+
   return (
-    <div className="container-fluid p-4">
-
-      <div className="row border border-dark p-3">
-
-        <LeftPanel />
-
-        <CanvasSection />
-
-        <UserList />
-
-      </div>
-
-    </div>
+    <>
+      {gameStarted ? <GameScreen /> : <StartScreen />}
+    </>
   );
 }
+
 export default App;

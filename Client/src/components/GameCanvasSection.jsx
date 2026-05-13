@@ -1,4 +1,4 @@
-function CanvasSection() {
+function GameCanvasSection() {
   return (
     <div className="col-7">
 
@@ -50,4 +50,4 @@ function CanvasSection() {
   );
 }
 
-export default CanvasSection;
+export default GameCanvasSection;

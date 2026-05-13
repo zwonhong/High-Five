@@ -1,4 +1,4 @@
-function UserList(){
+function GameUserList(){
     return (
         <div className="col-3">
 
@@ -27,4 +27,4 @@ function UserList(){
     );
 }
 
-export default UserList;
+export default GameUserList;
