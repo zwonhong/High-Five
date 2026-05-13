@@ -4,7 +4,9 @@ function GameLeftPanel() {
 
             {/* 사용자 정보 */}
             <div className="border rounded p-3 mb-3 text-center">
-                <h5>사용자 (나)</h5>
+                <h5>
+                    사용자 (나)
+                </h5>
             </div>
 
             {/* 채팅 입력란 */}

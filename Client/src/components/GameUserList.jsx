@@ -1,30 +1,27 @@
-function GameUserList(){
-    return (
-        <div className="col-3">
+function GameUserList({ players }) {
+  return (
+    <div className="col-3">
 
-          {/* 유저 목록 */}
-          <div className="d-flex flex-column align-items-end mb-3">
+      {/* 유저 목록 */}
+      <div className="d-flex flex-column align-items-end mb-3">
 
-            <div className="border rounded px-4 py-2 mb-2">
-              유저1
+        {
+          players.map((player, index) => (
+
+            <div
+              key={index}
+              className="border rounded px-4 py-2 mb-2"
+            >
+              {player}
             </div>
+            
+          ))
+        }
 
-            <div className="border rounded px-4 py-2 mb-2">
-              유저2
-            </div>
+      </div>
 
-            <div className="border rounded px-4 py-2 mb-2">
-              유저3
-            </div>
-
-            <div className="border rounded px-4 py-2">
-              유저4
-            </div>
-
-          </div>
-
-        </div>
-    );
+    </div>
+  );
 }
 
 export default GameUserList;

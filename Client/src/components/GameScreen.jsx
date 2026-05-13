@@ -10,6 +10,14 @@ function GameScreen({ nickname, setGameStarted }) {
   // 결과 모달 표시 여부
   const [showGameResultModal, setShowGameResultModal] = useState(false);
 
+  //player mapping
+  const [players, setPlayers] = useState([
+    "young",
+    "min",
+    "jisu",
+    "haeun"
+  ]);
+
   return (
     <div className="container-fluid p-4">
 
@@ -27,7 +35,7 @@ function GameScreen({ nickname, setGameStarted }) {
             className="btn btn-success"
             onClick={() => setShowGameResultModal(true)}
           >
-            정답 맞추기 테스트
+            게임 종료 테스트
           </button>
         </div>
 
@@ -38,7 +46,7 @@ function GameScreen({ nickname, setGameStarted }) {
         <GameCanvasSection />
 
         {/* 오른쪽 유저 목록 */}
-        <GameUserList />
+        <GameUserList players={players}/>
 
         {/* 결과 모달 */}
         {
