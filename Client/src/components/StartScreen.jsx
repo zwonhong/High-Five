@@ -1,4 +1,4 @@
-function StartScreen() {
+function StartScreen({setGameStarted}) {
     return (
       <div className="container-fluid p-4">
   
@@ -36,6 +36,7 @@ function StartScreen() {
                 borderRadius: "20px"
               }}
 
+              onClick={() => setGameStarted(true)}
             >
               게임 시작하기
             </button>
