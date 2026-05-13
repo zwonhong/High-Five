@@ -53,6 +53,8 @@
         </div>
     </div>
 
+    // 나중에 UI가 마련되면 아래 스크립트만 옮겨서 사용하고, 위의 테스트용 UI는 제거하셔도 됩니다. 
+    // Once the UI is ready, you can move the script below and remove the above test UI.
     <script>
         const logDiv = document.getElementById('log');
         const userCountSpan = document.getElementById('userCount');
@@ -61,7 +63,10 @@
         const roomIdText = document.getElementById('roomIdText');
 
         // 소켓 초기화 (자동 연결 방지) Initialize socket (auto X)
-        const socket = io(window.location.origin, { autoConnect: false });
+        const socket = io("/", { 
+            autoConnect: false,
+            transports: ['websocket', 'polling'] // websocket 우선, 폴링은 fallback 용 (websocket first, polling fallback)
+        });
 
         // 로그 출력 함수 (sysmsg / chat 구분)) Log output (sysmsg / chat distinction)
         function addLog(message, isChat = false) {
