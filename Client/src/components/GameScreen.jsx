@@ -1,22 +1,60 @@
+import { useState } from "react";
+
 import GameLeftPanel from "./GameLeftPanel";
 import GameCanvasSection from "./GameCanvasSection";
 import GameUserList from "./GameUserList";
+import GameResultModal from "./GameResultModal";
 
-function GameScreen() {
+function GameScreen({ nickname, setGameStarted }) {
+
+  // 결과 모달 표시 여부
+  const [showGameResultModal, setShowGameResultModal] = useState(false);
+
   return (
     <div className="container-fluid p-4">
 
-      <div className="row border border-dark p-3">
+      {/* 전체 게임 화면 */}
+      <div
+        className="row border border-dark p-3 position-relative"
+        style={{
+          minHeight: "90vh"
+        }}
+      >
 
-        <GameLeftPanel />
+        {/* 게임 종료 테스트용 버튼 */}
+        <div className="mb-3">
+          <button
+            className="btn btn-success"
+            onClick={() => setShowGameResultModal(true)}
+          >
+            정답 맞추기 테스트
+          </button>
+        </div>
 
+        {/* 왼쪽 패널 */}
+        <GameLeftPanel nickname={nickname} />
+
+        {/* 가운데 영역 */}
         <GameCanvasSection />
 
+        {/* 오른쪽 유저 목록 */}
         <GameUserList />
+
+        {/* 결과 모달 */}
+        {
+          showGameResultModal && (
+            <GameResultModal
+              winner={nickname}
+              setShowGameResultModal={setShowGameResultModal}
+              setGameStarted={setGameStarted}
+            />
+          )
+        }
 
       </div>
 
     </div>
   );
 }
+
 export default GameScreen;

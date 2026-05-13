@@ -6,13 +6,25 @@ import GameScreen from "./components/GameScreen";
 function App() {
 
   const [gameStarted, setGameStarted] = useState(false);
+  const [nickname, setNickname] = useState("");
 
   return (
     <>
       {
         gameStarted
-          ? <GameScreen />
-          : <StartScreen setGameStarted={setGameStarted} />
+          ? (
+            <GameScreen
+              nickname={nickname}
+              setGameStarted={setGameStarted}
+            />
+          )
+          : (
+            <StartScreen
+              setGameStarted={setGameStarted}
+              nickname={nickname}
+              setNickname={setNickname}
+            />
+          )
       }
     </>
   );
