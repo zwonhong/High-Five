@@ -32,6 +32,8 @@ const findOrCreateRoom = async (client) => {
     }
     return targetRoomId;
 };
+
+/** 
 // 방에 유저를 추가함 Add user to room
 const addUserToRoom = async (client, roomId, user) => {
     // 해당 방 데이터를 Redis에서 가져옴
@@ -59,6 +61,55 @@ const addUserToRoom = async (client, roomId, user) => {
     // 변경된 방 데이터를 Redis에 저장 Save updated room data back to Redis
     await client.set(roomId, JSON.stringify(room));
     return { success: true, room }; // 방 정보를 반환 Return room info;
+}; */
+
+// 방에 유저를 추가하는 과정을 Lua 스크립트로 원자적으로 처리하여 레이스 컨디션을 방지합니다. Add user to room atomically using Lua script to prevent race conditions.
+const addUserToRoom = async (client, roomId, user) => {
+    const luaScript = `
+        local data = redis.call('get', KEYS[1])
+        if not data then return "ROOM_NOT_FOUND" end
+        
+        local room = cjson.decode(data)
+        
+        -- 중복 닉네임 체크
+        for _, u in ipairs(room.users) do
+            if u.nickname == ARGV[1] then
+                return "DUPLICATE"
+            end
+        end
+        
+        -- 인원 초과 체크 (MAX_USERS = 5)
+        if #room.users >= 5 then
+            return "FULL"
+        end
+        
+        -- 유저 추가
+        table.insert(room.users, {id = ARGV[2], nickname = ARGV[1]})
+        
+        -- 5명이 되면 시작 상태로 변경
+        if #room.users == 5 then
+            room.isStarted = true
+        end
+        
+        redis.call('set', KEYS[1], cjson.encode(room))
+        return cjson.encode({success = true, room = room})
+    `;
+
+    try {
+        const result = await client.eval(luaScript, {
+            keys: [roomId],
+            arguments: [user.nickname, user.id]
+        });
+
+        if (result === "DUPLICATE") return { success: false, message: "Already in use." };
+        if (result === "FULL") return { success: false, message: "Room is already full." };
+        if (result === "ROOM_NOT_FOUND") return { success: false, message: "Room not found." };
+
+        return JSON.parse(result);
+    } catch (err) {
+        console.error("[REDIS LUA ERROR]", err);
+        return { success: false, message: "Server error during entry." };
+    }
 };
 
 // 방에서 유저를 제거하고 방이 비게 되면 삭제함 Remove user from room and delete room if empty
