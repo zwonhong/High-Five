@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import GameLeftPanel from "./GameLeftPanel";
 import GameCanvasSection from "./GameCanvasSection";
-import GameUserList from "./GameUserList";
+import GameRightPanel from "./GameRightPanel";
 import GameResultModal from "./GameResultModal";
 
 function GameScreen({ nickname, setGameStarted }) {
@@ -16,6 +16,17 @@ function GameScreen({ nickname, setGameStarted }) {
     "min",
     "jisu",
     "haeun"
+  ]);
+
+  const [messages, setMessages] = useState([
+    {
+      user: "young",
+      text: "원숭이"
+    },
+    {
+      user: "min",
+      text: "오랑우탄"
+    }
   ]);
 
   return (
@@ -40,13 +51,16 @@ function GameScreen({ nickname, setGameStarted }) {
         </div>
 
         {/* 왼쪽 패널 */}
-        <GameLeftPanel nickname={nickname} />
+        <GameLeftPanel
+            nickname={nickname}
+            messages={messages}
+        />
 
         {/* 가운데 영역 */}
         <GameCanvasSection />
 
         {/* 오른쪽 유저 목록 */}
-        <GameUserList players={players}/>
+        <GameRightPanel players={players}/>
 
         {/* 결과 모달 */}
         {

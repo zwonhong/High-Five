@@ -1,11 +1,11 @@
-function GameLeftPanel() {
+function GameLeftPanel({nickname, messages}) {
     return (
         <div className="col-2 d-flex flex-column">
 
             {/* 사용자 정보 */}
             <div className="border rounded p-3 mb-3 text-center">
                 <h5>
-                    사용자 (나)
+                    사용자({nickname})
                 </h5>
             </div>
 
@@ -24,6 +24,18 @@ function GameLeftPanel() {
                         height: "150px"
                     }}
                 >
+                    {
+                        messages.map((message, index) => (
+
+                            <div key={index} className="mb-2">
+
+                                <strong>{message.user}</strong>
+                                : {message.text}
+
+                            </div>
+
+                        ))
+                    }
                 </div>
 
                 <input
