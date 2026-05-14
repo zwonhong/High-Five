@@ -36,9 +36,20 @@ const findOrCreateRoom = async (client) => {
 const addUserToRoom = async (client, roomId, user) => {
     // 해당 방 데이터를 Redis에서 가져옴
     const data = await client.get(roomId);
-    if (!data) return null; // 방이 존재하지 않으면 null 반환 If room doesn't exist, return null
+    if (!data) return { success: false, message: "Room not found." }; // 방이 존재하지 않으면 null 반환 If room doesn't exist, return null
     
     const room = JSON.parse(data);
+
+    // 중복 닉네임 체크 Check for duplicate nickname
+    const isDuplicate = room.users.some(u => u.nickname === user.nickname);
+    if (isDuplicate) {
+        return { success: false, message: "Already in use." };
+    }
+
+    // 인원 초과 체크 (Race Condition defense) Check for room capacity
+    if (room.users.length >= MAX_USERS) {
+        return { success: false, message: "Room is already full." };
+    }
 
     room.users.push(user);
     if (room.users.length === MAX_USERS) {
@@ -47,7 +58,7 @@ const addUserToRoom = async (client, roomId, user) => {
 
     // 변경된 방 데이터를 Redis에 저장 Save updated room data back to Redis
     await client.set(roomId, JSON.stringify(room));
-    return room; // 방 정보를 반환 Return room info;
+    return { success: true, room }; // 방 정보를 반환 Return room info;
 };
 
 // 방에서 유저를 제거하고 방이 비게 되면 삭제함 Remove user from room and delete room if empty

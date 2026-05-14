@@ -64,8 +64,8 @@ module.exports = async (server) => {
                 const roomId = await findOrCreateRoom(pubClient);
                 const result = await addUserToRoom(pubClient, roomId, { id: socket.id, nickname });
 
-                if (result) {
-                    const { users, isStarted } = result;
+                if (result.success) {
+                    const { users, isStarted } = result.room;
 
                     socket.join(roomId);
                     socket.currentRoom = roomId;
@@ -79,8 +79,8 @@ module.exports = async (server) => {
                         io.to(roomId).emit('game_start', { roomId: roomId, canDraw: true});
                     }
                 } else {
-                    // 결과가 null인 경우 If result is null
-                    emitError(socket, "Failed to join room. The room may be full or an error occurred. Please try again.", true);
+                    // true를 전달하여 중복 닉네임 시 연결을 끊고 다시 입력하게 유도함 Force disconnect on duplicate nickname to prompt re-entry
+                    emitError(socket, result.message, false);
                 }
             } catch (err) {
                 console.error("[JOIN ERROR]", err);
