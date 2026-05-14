@@ -5,10 +5,7 @@ const redisConfig = {
     url: "redis://redis-db:6379",
     socket: {
         reconnectStrategy: (retries) => {
-            if (retries > 10) {
-                console.error("[REDIS] connection lost");
-                return new Error("Redis connection lost after multiple attempts");
-            }
+            // 계속 재연결 시도 infinite retries with exponential backoff (최대 2초 간격)
             const delay = Math.min(retries * 500, 2000); // 최대 2초 간격
             console.warn(`[REDIS] connection attempt failed. Retrying in ${delay}ms... (Attempt: ${retries})`);
             return delay;

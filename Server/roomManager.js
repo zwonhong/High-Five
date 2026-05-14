@@ -1,13 +1,14 @@
 const { createClient } = require('redis');
 
 // 도커 환경의 서비스 이름 'redis-db'를 사용합니다.
-const client = createClient({ url: 'redis://redis-db:6379' });
-client.connect().catch(console.error); // 초기 연결만 수행
+/** socker에서 사용하는 redis 클라이언트 참조 */
+// const client = createClient({ url: 'redis://redis-db:6379' });
+// client.connect().catch(console.error); // 초기 연결만 수행
 
 const MAX_USERS = 5;
 
 // 비어있는 방을 찾거나 모든 방이 다 정원이 찬 경우 새로운 방을 생성함 Find an empty room or create a new one if all are full
-const findOrCreateRoom = async () => {
+const findOrCreateRoom = async (client) => {
     // Redis에서 모든 방 키(room:*)를 가져옴
     const keys = await client.keys('room_*');
 
@@ -32,7 +33,7 @@ const findOrCreateRoom = async () => {
     return targetRoomId;
 };
 // 방에 유저를 추가함 Add user to room
-const addUserToRoom = async (roomId, user) => {
+const addUserToRoom = async (client, roomId, user) => {
     // 해당 방 데이터를 Redis에서 가져옴
     const data = await client.get(roomId);
     if (!data) return null; // 방이 존재하지 않으면 null 반환 If room doesn't exist, return null
@@ -50,7 +51,7 @@ const addUserToRoom = async (roomId, user) => {
 };
 
 // 방에서 유저를 제거하고 방이 비게 되면 삭제함 Remove user from room and delete room if empty
-const removeUserFromRoom = async (roomId, socketId) => {
+const removeUserFromRoom = async (client, roomId, socketId) => {
     const data = await client.get(roomId);
     if (!data) return null; // 방이 존재하지 않으면 null 반환 If room doesn't exist, return null
 

@@ -19,22 +19,35 @@ module.exports = async (server) => {
     handleRedisError(pubClient);
     handleRedisError(subClient);
 
-    const connectRedis = async () => {
-        try {
-            // 비동기 연결 시도 Attempt asynchronous connection
-            await pubClient.connect();
-            await subClient.connect();
+    let adapterMounted = false;
 
-            console.log("[SYSTEM] Redis Adapter Connected!");
-            // 2. 어댑터 장착 (이제 서버간 통신이 가능해짐) Attach adapter (now inter-server communication is possible)
-            io.adapter(createAdapter(pubClient, subClient));
-        } catch (error) {
-            // 초기 연결 실패 시 로그는 남기고 서버는 계속 실행 Allow server to continue running even if initial connection fails
-            console.error("[REDIS ERROR] Failed to connect to Redis:", error);
+    // 재연결 시 어댑터를 안전하게 다시 장착하기 위한 함수
+    // 어댑터 장착 로직을 별도 함수로 분리
+    const mountRedisAdapter = () => {
+        // 두 소켓이 모두 'Ready' 상태인지 직접 확인
+        if (pubClient.isReady && subClient.isReady) {
+            try {
+                const adapter = createAdapter(pubClient, subClient);
+                io.adapter(adapter);
+                isAdapterMounted = true;
+                console.log("[SYSTEM] Redis Reconnected & Adapter Swapped!");
+            } catch (e) {
+                console.error("[SYSTEM] Adapter Mount Error:", e);
+            }
         }
     };
 
-    await connectRedis(); // 서버 시작 시 Redis 연결 시도 Attempt Redis connection on server start
+    // 두 클라이언트 모두에 'ready' 리스너 등록
+    pubClient.on('ready', mountRedisAdapter);
+    subClient.on('ready', mountRedisAdapter);
+
+    // [중요] 연결이 끊겼을 때 로그를 찍어 상태를 모니터링합니다.
+    pubClient.on('error', () => { isAdapterMounted = false; });
+
+    // 초기 연결 시도
+    pubClient.connect().catch(() => {});
+    subClient.connect().catch(() => {});
+
 
     // 연결 핸들링 Connection Handling
     io.on('connection', (socket) => {
@@ -42,13 +55,14 @@ module.exports = async (server) => {
         socket.on('join_auto', async (nickname) => {
             // Redis 연결 상태 확인 Check Redis connection status
             try {
-                if (!pubClient.isOpen) {
+                if (!pubClient.isOpen || !pubClient.isReady) {
+                    console.error("[REJECT] Redis not ready. Rejecting join_auto.");
                     return emitError(socket, "Cannot join room: Server maintenance in progress. Please try again later.", true);
                 }
             
             
-                const roomId = await findOrCreateRoom();
-                const result = await addUserToRoom(roomId, { id: socket.id, nickname });
+                const roomId = await findOrCreateRoom(pubClient);
+                const result = await addUserToRoom(pubClient, roomId, { id: socket.id, nickname });
 
                 if (result) {
                     const { users, isStarted } = result;
@@ -128,7 +142,7 @@ module.exports = async (server) => {
             try {
                 if (socket.currentRoom) {
                     // roomManager.js에서 객체를 받아옴
-                    const result = await removeUserFromRoom(socket.currentRoom, socket.id);
+                    const result = await removeUserFromRoom(pubClient, socket.currentRoom, socket.id);
                     
                     console.log(`[SYSTEM] user disconnected: ${socket.nickname} from room ${socket.currentRoom}`);
                     
