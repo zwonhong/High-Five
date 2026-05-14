@@ -1,3 +1,5 @@
+import "./styles/common.css"
+
 import { useState } from "react";
 
 import StartScreen from "./components/StartScreen";

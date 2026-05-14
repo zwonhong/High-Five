@@ -2,7 +2,7 @@ function GameRightPanel({ players }) {
 
   return (
 
-    <div className="col-3 d-flex flex-column">
+    <div className="right-panel">
 
       {/* 유저 목록 */}
       <div className="d-flex flex-column align-items-end mb-4">

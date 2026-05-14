@@ -1,6 +1,6 @@
 function GameLeftPanel({nickname, messages}) {
     return (
-        <div className="col-2 d-flex flex-column">
+        <div className="left-panel">
 
             {/* 사용자 정보 */}
             <div className="border rounded p-3 mb-3 text-center">
