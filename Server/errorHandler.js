@@ -46,7 +46,12 @@ const emitError = (socket, message, shouldDisconnect = false) => {
 
 const handleProcessError = () => {
     process.on('uncaughtException', (err) => {
-        console.error(`[CRITICAL ERROR] 서버 내부 치명적 오류: ${err.stack}`);
+        // Redis 관련 소켓 에러인지 확인
+        if (err.message && err.message.includes('Socket closed unexpectedly')) {
+            console.warn(`[SAFEGUARD] Redis 소켓이 닫혔으나 서버를 유지합니다: ${err.message}`);
+            return; // 프로세스 종료를 막음
+        }
+        console.error(`[CRITICAL ERROR] Hard Error: ${err.stack}`);
         // 서비스 가용성을 위해 서버를 즉시 종료하지 않고 로그만 남김
     });
 

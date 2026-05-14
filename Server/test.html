@@ -81,6 +81,10 @@
             const nickname = document.getElementById('nicknameInput').value;
             if (!nickname) return alert("닉네임을 입력해주세요!");
 
+            // 버튼을 누르자마자 상태 표시
+            document.getElementById('nicknameInput').disabled = true;
+            addLog("서버에 연결을 시도 중입니다...");
+    
             socket.connect(); // 서버 연결 시작 Start connection to server
             
             // 연결 성공 시 join_auto 실행되도록 일회성 등록 If connection is successful, emit join_auto once
@@ -92,6 +96,13 @@
                 statusBox.className = "status-box connected";
                 statusText.innerText = "연결됨 (ID: " + socket.id + ")";
                 addLog(`서버에 연결되었습니다. (닉네임: ${nickname})`);
+            });
+
+            // 연결 실패(서버 다운 등) 시 즉시 알림
+            socket.once("connect_error", (err) => {
+                alert("서버에 연결할 수 없습니다. 나중에 다시 시도해주세요.");
+                document.getElementById('nicknameInput').disabled = false;
+                addLog("연결 실패: " + err.message);
             });
         }
 

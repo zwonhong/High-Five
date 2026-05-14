@@ -15,16 +15,26 @@ module.exports = async (server) => {
     const pubClient = createClient(redisConfig);
     const subClient = pubClient.duplicate();
 
-    try {
-        // 비동기 연결 시도 Attempt asynchronous connection
-        await Promise.all([pubClient.connect(), subClient.connect()]);
-        console.log("[SYSTEM] Redis Adapter Connected!");
-        // 2. 어댑터 장착 (이제 서버간 통신이 가능해짐) Attach adapter (now inter-server communication is possible)
-        io.adapter(createAdapter(pubClient, subClient));
-    } catch (error) {
-        // 초기 연결 실패 시 로그는 남기고 서버는 계속 실행 Allow server to continue running even if initial connection fails
-        console.error("[REDIS ERROR] Failed to connect to Redis:", error);
-    }
+    // Redis 에러 핸들링 Redis error handling
+    handleRedisError(pubClient);
+    handleRedisError(subClient);
+
+    const connectRedis = async () => {
+        try {
+            // 비동기 연결 시도 Attempt asynchronous connection
+            await pubClient.connect();
+            await subClient.connect();
+
+            console.log("[SYSTEM] Redis Adapter Connected!");
+            // 2. 어댑터 장착 (이제 서버간 통신이 가능해짐) Attach adapter (now inter-server communication is possible)
+            io.adapter(createAdapter(pubClient, subClient));
+        } catch (error) {
+            // 초기 연결 실패 시 로그는 남기고 서버는 계속 실행 Allow server to continue running even if initial connection fails
+            console.error("[REDIS ERROR] Failed to connect to Redis:", error);
+        }
+    };
+
+    await connectRedis(); // 서버 시작 시 Redis 연결 시도 Attempt Redis connection on server start
 
     // 연결 핸들링 Connection Handling
     io.on('connection', (socket) => {
@@ -33,7 +43,7 @@ module.exports = async (server) => {
             // Redis 연결 상태 확인 Check Redis connection status
             try {
                 if (!pubClient.isOpen) {
-                    return emitError(socket, "Cannot join room: Redis is not available. Please try again later.", true);
+                    return emitError(socket, "Cannot join room: Server maintenance in progress. Please try again later.", true);
                 }
             
             
