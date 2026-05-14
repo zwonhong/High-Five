@@ -1,0 +1,51 @@
+:root {
+
+  /* 전체 UI 기준 크기 */
+  --ui-scale: clamp(500px, min(68vw, 82vh), 600px);
+
+  /* 비율 계산용 */
+  --scale: calc(var(--ui-scale) / 600);
+
+  /* 패널 너비 */
+  --left-width: calc(var(--ui-scale) * 0.23);
+  --right-width: calc(var(--ui-scale) * 0.18);
+
+  /* 간격 시스템 */
+  --outer-gap: calc(var(--ui-scale) * 0.0833);
+  --inner-gap: calc(var(--ui-scale) * 0.05);
+  --user-gap: calc(var(--ui-scale) * 0.1666);
+
+  /* 폰트 */
+  --font-size: calc(18px * var(--scale));
+
+  /* radius */
+  --radius: calc(10px * var(--scale));
+}
+
+
+body {
+
+  margin: 0;
+
+  background: #c3ffff;
+
+  font-family: sans-serif;
+
+  overflow: hidden;
+}
+
+
+/* 공통 박스 스타일 */
+
+.common-box {
+
+  border: 2px solid black;
+
+  background: #eeeeee;
+
+  box-sizing: border-box;
+
+  font-size: var(--font-size);
+
+  border-radius: var(--radius);
+}

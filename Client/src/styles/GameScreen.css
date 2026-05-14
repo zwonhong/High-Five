@@ -1,273 +1,247 @@
-:root {
+.game-wrapper {
 
-    /* 전체 UI 기준 크기 */
-    --ui-scale: min(68vw, 82vh);
-  
-    /* 패널 너비 */
-    --left-width: calc(var(--ui-scale) * 0.23);
-    --right-width: calc(var(--ui-scale) * 0.18);
-  
-    /* 공통 간격 */
-    --gap-size: calc(var(--ui-scale) * 0.025);
-  
-    /* 폰트 */
-    --font-size: calc(var(--ui-scale) * 0.03);
-  
-    /* border radius */
-    --radius: calc(var(--ui-scale) * 0.015);
-  }
-  
-  
-  /* GLOBAL */
-  
-  body {
-  
-    margin: 0;
-  
-    background: #c3ffff;
-  
-    font-family: sans-serif;
-  
-    overflow: hidden;
-  }
-  
-  
-  /* WRAPPER */
-  
-  .game-wrapper {
-  
-    width: 100vw;
-    height: 100vh;
-  
-    display: flex;
-  
-    justify-content: center;
-    align-items: center;
-  
-    overflow: hidden;
-  }
-  
-  
-  /* MAIN LAYOUT */
-  
-  .game-layout {
-  
-    display: grid;
-  
-    grid-template-columns:
-      var(--left-width)
-      var(--ui-scale)
-      var(--right-width);
-  
-    gap: var(--gap-size);
-  
-    padding: var(--gap-size);
-  
-    box-sizing: border-box;
-  }
-  
-  
-  /* COMMON BOX STYLE */
-  
-  .info-box,
-  .chat-box,
-  .guide-box,
-  .topic-box,
-  .canvas-box,
-  .toolbar,
-  .user-box,
-  .timer-box {
-  
-    border: 2px solid black;
-  
-    background: #eeeeee;
-  
-    box-sizing: border-box;
-  
-    font-size: var(--font-size);
-  
-    border-radius: var(--radius);
-  }
-  
-  
-  /* LEFT PANEL */
-  
-  .left-panel {
-  
-    width: var(--left-width);
-  
-    display: flex;
-    flex-direction: column;
-  
-    gap: var(--gap-size);
-  }
-  
-  
-  /* 내 정보 */
-  
-  .info-box {
-  
-    width: 100%;
-  
-    height: calc(var(--ui-scale) * 0.12);
-  
-    display: flex;
-  
-    justify-content: center;
-    align-items: center;
-  }
-  
-  
-  /* 채팅 */
-  
-  .chat-box {
-  
-    width: 100%;
-  
-    height: calc(var(--ui-scale) * 0.5);
-  
-    display: flex;
-  
-    justify-content: center;
-    align-items: center;
-  }
-  
-  
-  /* 가이드 */
-  
-  .guide-box {
-  
-    width: 100%;
-  
-    flex: 1;
-  
-    display: flex;
-  
-    justify-content: center;
-    align-items: center;
-  }
-  
-  
-  /* CENTER SECTION */
-  
-  .canvas-section {
-  
-    width: var(--ui-scale);
-  
-    display: flex;
-    flex-direction: column;
-  
-    align-items: center;
-  
-    gap: var(--gap-size);
-  }
-  
-  
-  /* 주제 박스 */
-  
-  .topic-box {
-  
-    width: 100%;
-  
-    height: calc(var(--ui-scale) * 0.1);
-  
-    padding: 0 calc(var(--ui-scale) * 0.03);
-  
-    display: flex;
-  
-    align-items: center;
-  }
-  
-  
-  /* 캔버스 */
-  
-  .canvas-box {
-  
-    width: 100%;
-  
-    aspect-ratio: 1 / 1;
-  
-    background-color: #f8f9fa;
-  
-    display: flex;
-  
-    justify-content: center;
-    align-items: center;
-  
-    font-size: calc(var(--font-size) * 1.5);
-  }
-  
-  
-  /* 툴바 */
-  
-  .toolbar {
-  
-    width: 100%;
-  
-    height: calc(var(--ui-scale) * 0.12);
-  
-    display: flex;
-  
-    justify-content: center;
-    align-items: center;
-  
-    flex-wrap: wrap;
-  
-    gap: calc(var(--ui-scale) * 0.015);
-  
-    padding: calc(var(--ui-scale) * 0.015);
-  }
-  
-  
-  /* RIGHT PANEL */
-  
-  .right-panel {
-  
-    width: var(--right-width);
-  
-    display: flex;
-    flex-direction: column;
-  
-    justify-content: space-between;
-  }
-  
-  
-  /* 유저 리스트 */
-  
-  .user-list {
-  
-    display: flex;
-    flex-direction: column;
-  
-    gap: calc(var(--ui-scale) * 0.04);
-  }
-  
-  
-  /* 유저 박스 */
-  
-  .user-box {
-  
-    width: 100%;
-  
-    height: calc(var(--ui-scale) * 0.08);
-  
-    display: flex;
-  
-    justify-content: center;
-    align-items: center;
-  }
-  
-  
-  /* 타이머 */
-  
-  .timer-box {
-  
-    width: 100%;
-  
-    height: calc(var(--ui-scale) * 0.18);
-  
-    display: flex;
-  
-    justify-content: center;
-    align-items: center;
-  }
+  width: 100vw;
+  height: 100vh;
+
+  background: #c3ffff;
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+}
+
+
+.game-layout {
+
+  display: grid;
+
+  grid-template-columns:
+    var(--left-width)
+    var(--ui-scale)
+    var(--right-width);
+
+  column-gap: var(--inner-gap);
+
+  padding: var(--outer-gap);
+
+  box-sizing: border-box;
+}
+
+
+/* LEFT PANEL */
+
+.left-panel {
+
+  width: var(--left-width);
+
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--inner-gap);
+}
+
+
+/* 내 정보 */
+
+.info-box {
+
+  width: 100%;
+
+  height: calc(var(--ui-scale) * 0.12);
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+}
+
+
+/* 채팅 */
+
+.chat-box {
+
+  width: 100%;
+
+  height: calc(var(--ui-scale) * 0.5);
+
+  display: flex;
+
+  flex-direction: column;
+
+  padding: calc(var(--ui-scale) * 0.03);
+
+  gap: calc(var(--ui-scale) * 0.02);
+}
+
+
+/* 채팅 헤더 */
+
+.chat-header {
+
+  width: fit-content;
+
+  padding:
+    calc(var(--ui-scale) * 0.01)
+    calc(var(--ui-scale) * 0.03);
+
+  border: 2px solid black;
+
+  border-radius: 999px;
+
+  background: white;
+
+  font-size: var(--font-size);
+}
+
+
+/* 채팅 메시지 */
+
+.chat-messages {
+
+  flex: 1;
+
+  overflow-y: auto;
+}
+
+
+/* 가이드 */
+
+.guide-box {
+
+  width: 100%;
+
+  flex: 1;
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+}
+
+
+/* CENTER */
+
+.canvas-section {
+
+  width: var(--ui-scale);
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: var(--inner-gap);
+}
+
+
+/* 주제 */
+
+.topic-box {
+
+  width: 100%;
+
+  height: calc(var(--ui-scale) * 0.1);
+
+  padding: 0 calc(var(--ui-scale) * 0.03);
+
+  display: flex;
+
+  align-items: center;
+}
+
+
+/* 캔버스 */
+
+.canvas-box {
+
+  width: 100%;
+
+  aspect-ratio: 1 / 1;
+
+  background-color: #f8f9fa;
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  font-size: calc(var(--font-size) * 1.5);
+}
+
+
+/* 툴바 */
+
+.toolbar {
+
+  width: 100%;
+
+  height: calc(var(--ui-scale) * 0.12);
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  gap: calc(var(--ui-scale) * 0.02);
+
+  padding: calc(var(--ui-scale) * 0.015);
+}
+
+
+/* RIGHT PANEL */
+
+.right-panel {
+
+  width: var(--right-width);
+
+  display: flex;
+  flex-direction: column;
+
+  justify-content: space-between;
+}
+
+
+/* 유저 목록 */
+
+.user-list {
+
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--user-gap);
+}
+
+
+/* 유저 박스 */
+
+.user-box {
+
+  width: 100%;
+
+  height: calc(var(--ui-scale) * 0.08);
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+}
+
+
+/* 타이머 */
+
+.timer-box {
+
+  width: 100%;
+
+  height: calc(var(--ui-scale) * 0.18);
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  font-size: calc(var(--font-size) * 1.8);
+
+  font-weight: bold;
+}
