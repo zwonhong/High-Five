@@ -1,13 +1,13 @@
 :root {
 
   /* 전체 UI 기준 크기 */
-  --ui-scale: clamp(500px, min(68vw, 82vh), 600px);
+  --ui-scale: clamp(430px, min(60vw, 75vh), 520px);
 
   /* 비율 계산용 */
   --scale: calc(var(--ui-scale) / 600);
 
   /* 패널 너비 */
-  --left-width: calc(var(--ui-scale) * 0.23);
+  --left-width: calc(var(--ui-scale) * 0.34);
   --right-width: calc(var(--ui-scale) * 0.18);
 
   /* 간격 시스템 */
@@ -16,7 +16,7 @@
   --user-gap: calc(var(--ui-scale) * 0.1666);
 
   /* 폰트 */
-  --font-size: calc(18px * var(--scale));
+  font-size: clamp(14px, 1vw, 18px);
 
   /* radius */
   --radius: calc(10px * var(--scale));
