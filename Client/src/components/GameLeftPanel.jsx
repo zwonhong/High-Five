@@ -15,11 +15,12 @@ function GameLeftPanel({ nickname, messages }) {
   
         {/* 채팅 */}
         <div className="chat-box common-box">
-  
+          {/* 
           <div className="chat-header">
             채팅
           </div>
-  
+          */}
+          
           <div className="chat-messages">
   
             {
@@ -36,12 +37,16 @@ function GameLeftPanel({ nickname, messages }) {
             }
   
           </div>
-  
-          <input
-            type="text"
-            className="form-control"
-            placeholder="채팅 입력"
-          />
+          <div className="chat-input-wrapper">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="채팅 입력"
+            />
+            <button className="chat-send-button">
+             ↑
+            </button>
+          </div>
   
         </div>
   

@@ -1,3 +1,5 @@
+import { Pencil,Eraser,Undo2 } from "lucide-react";
+
 function GameCanvasSection() {
 
   return (
@@ -25,22 +27,26 @@ function GameCanvasSection() {
       </div>
 
       {/* 툴바 */}
-      <div className="toolbar common-box">
+      <div class="toolbar">
 
-        <button className="btn btn-dark">
-          펜
+        <button class="tool-button">
+          <Pencil size={24} strokeWidth={1.5}/>
         </button>
 
-        <button className="btn btn-danger">
-          빨강
+        <button class="tool-button">
+          <Pencil size={24} color="blue" strokeWidth={1.5}/>
         </button>
 
-        <button className="btn btn-primary">
-          파랑
+        <button class="tool-button">
+          <Pencil size={24} color="red" strokeWidth={1.5}/>
         </button>
 
-        <button className="btn btn-secondary">
-          지우개
+        <button class="tool-button">
+          <Eraser size={24} strokeWidth={1.5}/>
+        </button>
+
+        <button class="tool-button">
+          <Undo2 size={24} strokeWidth={1.5}/>
         </button>
 
       </div>
