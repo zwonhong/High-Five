@@ -130,12 +130,21 @@ module.exports = async (server) => {
             try {
                 const roomId = socket.currentRoom;
                 const nickname = socket.nickname; // join_auto 시점에 저장했던 닉네임 Use nickname saved at join_auto
+                const now = Date.now();
+
+                // 간단한 스팸 방지 로직 (300ms 이상 간격을 두고 메시지 전송) Simple spam prevention logic (only allow sending messages at intervals of 300ms or more)
+                if (socket.lastChatTime && now - socket.lastChatTime < 300) {
+                    socket.emit('error_message', "천천히 입력해주세요.");
+                    return;
+                }
+                socket.lastChatTime = now;
 
                 // 방에 속해 있고 메시지가 비어있지 않은 경우에만 전송 Only send if user is in a room and message is not empty
                 if (roomId && msg.trim()) {
                     io.to(roomId).emit('receive_chat', {
                         sender: socket.nickname, // 입장 시 저장했던 닉네임 활용 Use nickname saved at join_auto
-                        message: msg
+                        message: msg,
+                        timestamp: now // 클라이언트에서 이 순서대로 정렬
                     });
 
                     // 서버 터미널 모니터링용 로그 Server terminal log for monitoring
