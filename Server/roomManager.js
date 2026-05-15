@@ -118,7 +118,11 @@ const removeUserFromRoom = async (client, roomId, socketId) => {
     if (!data) return null; // 방이 존재하지 않으면 null 반환 If room doesn't exist, return null
 
     const room = JSON.parse(data);
+    const initialLength = room.users.length;
     room.users = room.users.filter(u => u.id !== socketId);
+
+    // 인원 변화가 없다면 (지워진 게 없다면) 그냥 리턴 Return if no change in users (no one was removed)
+    if (room.users.length === initialLength) return { users: room.users };
     
     if (room.users.length === 0) {
         await client.del(roomId); // 방이 비면 Redis에서 삭제 Delete from Redis if room is empty

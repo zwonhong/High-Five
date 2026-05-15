@@ -4,10 +4,13 @@ const { createAdapter } = require("@socket.io/redis-adapter"); // 멀티 서버�
 const { findOrCreateRoom, addUserToRoom, removeUserFromRoom } = require('./roomManager');
 // errorHandling
 const { redisConfig, handleRedisError, emitError } = require('./errorHandler');
+const { cleanupGhostUsers } = require('./sessionCleaner');
 
 // 모듈로 서버를 내보내기 Export server as module
 module.exports = async (server) => {
     const io = new Server(server, {
+        pingTimeout: 5000,
+        pingInterval: 10000,
         cors: { origin: true, methods: ["GET", "POST"] }
     });
 
@@ -23,14 +26,19 @@ module.exports = async (server) => {
 
     // 재연결 시 어댑터를 안전하게 다시 장착하기 위한 함수
     // 어댑터 장착 로직을 별도 함수로 분리
-    const mountRedisAdapter = () => {
+    const mountRedisAdapter = async () => {
         // 두 소켓이 모두 'Ready' 상태인지 직접 확인
         if (pubClient.isReady && subClient.isReady) {
             try {
                 const adapter = createAdapter(pubClient, subClient);
                 io.adapter(adapter);
-                isAdapterMounted = true;
+                adapterMounted = true;
                 console.log("[SYSTEM] Redis Reconnected & Adapter Swapped!");
+                
+                // 어댑터가 재장착되면 유령 유저 정리 함수를 호출하여 Redis에 남아있는 유령 유저를 제거합니다.
+                // Call the ghost user cleanup function to remove any ghost users remaining in Redis after the adapter is remounted.
+                await cleanupGhostUsers(io, pubClient);
+            
             } catch (e) {
                 console.error("[SYSTEM] Adapter Mount Error:", e);
             }
@@ -42,7 +50,7 @@ module.exports = async (server) => {
     subClient.on('ready', mountRedisAdapter);
 
     // [중요] 연결이 끊겼을 때 로그를 찍어 상태를 모니터링합니다.
-    pubClient.on('error', () => { isAdapterMounted = false; });
+    pubClient.on('error', () => { adapterMounted = false; });
 
     // 초기 연결 시도
     pubClient.connect().catch(() => {});
@@ -138,13 +146,13 @@ module.exports = async (server) => {
         });
 
         // 연결 종료 핸들링 Disconnection handling
-        socket.on('disconnect', async () => {
+        socket.on('disconnect', async (reason) => {
             try {
                 if (socket.currentRoom) {
                     // roomManager.js에서 객체를 받아옴
                     const result = await removeUserFromRoom(pubClient, socket.currentRoom, socket.id);
                     
-                    console.log(`[SYSTEM] user disconnected: ${socket.nickname} from room ${socket.currentRoom}`);
+                    console.log(`[SYSTEM] user disconnected: ${socket.nickname} (${reason}) from room ${socket.currentRoom}`);
                     
                     if (result) {
                         const { users } = result;
@@ -153,8 +161,15 @@ module.exports = async (server) => {
                             roomId: socket.currentRoom, 
                             users: users
                         });
+                        console.log(`[SYSTEM] Room ${socket.currentRoom} updated. Total: ${users.length}`);
+                    } else {
+                        // 추가 권장: result가 null이면 마지막 유저가 나가서 방이 삭제된 상태입니다.
+                        console.log(`[SYSTEM] Room ${socket.currentRoom} is now empty and removed from Redis.`);
                     }
-                } 
+                } else {
+                    // 방에 입장하지 않고 연결만 끊긴 경우
+                    console.log(`[SYSTEM] User disconnected before joining any room: ${socket.id} (${reason})`);
+                }
             } catch (err) {
                 console.error("[DISCONNECT ERROR]", err);
             }

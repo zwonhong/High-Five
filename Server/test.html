@@ -270,8 +270,23 @@
         // 연결 끊김 시 If disconnected
         socket.on("disconnect", (reason) => {
             statusBox.className = "status-box disconnected";
-            statusText.innerText = "Connection lost (" + reason + ")";
-            addLog("Connection to server was lost.");
+            // 사유에 따른 메시지 세분화 (사용자 친화적 문구)
+            let message = "Connection lost";
+            if (reason === "ping timeout") {
+                message = "Disconnected due to inactivity (Zombie)";
+            } else if (reason === "io server disconnect") {
+                message = "Server forced disconnection";
+            } else if (reason === "transport close") {
+                message = "Server connection closed";
+            }
+
+            statusText.innerText = `${message} (${reason})`;
+            addLog(`Connection lost. Reason: ${reason}`);
+            
+            // 좀비 테스트나 서버 점검 시 도움이 되는 안내
+            if (reason === "ping timeout") {
+                addLog("⚠️ 장시간 응답이 없어 서버가 연결을 종료했습니다.");
+            }
         });
     </script>
 </body>
