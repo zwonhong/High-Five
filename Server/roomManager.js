@@ -112,6 +112,38 @@ const addUserToRoom = async (client, roomId, user) => {
     }
 };
 
+// 유저를 비활성화 상태로만 연결 (슬롯 유지) Mark user as inactive but keep slot occupied
+const markUserInactive = async (client, roomId, socketId) => {
+    const data = await client.get(roomId);
+    if (!data) return null;
+
+    const room = JSON.parse(data);
+    const user = room.users.find(u => u.id === socketId);
+    
+    if (user) {
+        user.isDisconnected = true; // 유령 상태 표시 (자리는 차지함) Mark as ghost (slot is still occupied)
+        await client.set(roomId, JSON.stringify(room));
+    }
+    return room;
+};
+
+// 재연결 시 유저를 다시 '활성화' 상태로 변경 Update user to 'active' state on reconnection
+const reconnectUser = async (client, roomId, oldSocketId, newSocketId) => {
+    const data = await client.get(roomId);
+    if (!data) return null;
+
+    const room = JSON.parse(data);
+    const user = room.users.find(u => u.id === oldSocketId);
+
+    if (user) {
+        user.id = newSocketId; // 새로운 소켓 ID로 갱신 Update with new socket ID
+        user.isDisconnected = false; // 다시 활성화 Mark as active again
+        await client.set(roomId, JSON.stringify(room));
+        return room;
+    }
+    return null;
+};
+
 // 방에서 유저를 제거하고 방이 비게 되면 삭제함 Remove user from room and delete room if empty
 const removeUserFromRoom = async (client, roomId, socketId) => {
     const data = await client.get(roomId);
@@ -135,4 +167,4 @@ const removeUserFromRoom = async (client, roomId, socketId) => {
 };
 
 // 함수 -> 모듈로 내보내기 Export functions as module
-module.exports = { findOrCreateRoom, addUserToRoom, removeUserFromRoom };
+module.exports = { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, reconnectUser };

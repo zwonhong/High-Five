@@ -1,10 +1,12 @@
 const { Server } = require('socket.io');
 const { createClient } = require("redis"); // 멀티 서버를 위한 redis 클라이언트 추가
 const { createAdapter } = require("@socket.io/redis-adapter"); // 멀티 서버를 위한 redis 어댑터 추가
-const { findOrCreateRoom, addUserToRoom, removeUserFromRoom } = require('./roomManager');
+const { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, reconnectUser } = require('./roomManager');
 // errorHandling
 const { redisConfig, handleRedisError, emitError } = require('./errorHandler');
 const { cleanupGhostUsers } = require('./sessionCleaner');
+
+const reconnectionTimers = new Map(); // socketId -> setTimeout 객체
 
 // 모듈로 서버를 내보내기 Export server as module
 module.exports = async (server) => {
@@ -59,6 +61,32 @@ module.exports = async (server) => {
 
     // 연결 핸들링 Connection Handling
     io.on('connection', (socket) => {
+
+        socket.on('try_reconnect', async (data) => {
+            const { roomId, oldSocketId, nickname } = data;
+
+            if (reconnectionTimers.has(oldSocketId)) {
+                // 1. 기존 삭제 대기 타이머 취소
+                clearTimeout(reconnectionTimers.get(oldSocketId));
+                reconnectionTimers.delete(oldSocketId);
+
+                // 2. Redis 데이터 갱신 (roomManager에서 추가한 함수 사용)
+                const room = await reconnectUser(pubClient, roomId, oldSocketId, socket.id);
+                
+                if (room) {
+                    socket.join(roomId);
+                    socket.currentRoom = roomId;
+                    socket.nickname = nickname;
+
+                    // 3. 본인 및 방 인원들에게 복구 알림
+                    socket.emit('reconnect_success', { roomId, users: room.users });
+                    io.to(roomId).emit('room_update', { roomId, users: room.users });
+                    console.log(`[RECONNECT] ${nickname} returned to ${roomId}`);
+                }
+            } else {
+                socket.emit('reconnect_fail', "세션이 만료되었습니다.");
+            }
+        });
 
         socket.on('join_auto', async (nickname) => {
             // Redis 연결 상태 확인 Check Redis connection status
@@ -149,23 +177,39 @@ module.exports = async (server) => {
         socket.on('disconnect', async (reason) => {
             try {
                 if (socket.currentRoom) {
-                    // roomManager.js에서 객체를 받아옴
-                    const result = await removeUserFromRoom(pubClient, socket.currentRoom, socket.id);
+                    const roomId = socket.currentRoom;
+                    const socketId = socket.id;
+                    const nickname = socket.nickname;
+
+                    // 즉시 지우지 않고 '비활성화' 처리 Mark as inactive instead of immediate removal
+                    await markUserInactive(pubClient, roomId, socketId);
+                    console.log(`[SYSTEM] User marked as inactive: ${socket.nickname} (${reason}) from room ${socket.currentRoom}. Waiting for 10 seconds before final removal.`);
                     
-                    console.log(`[SYSTEM] user disconnected: ${socket.nickname} (${reason}) from room ${socket.currentRoom}`);
-                    
-                    if (result) {
-                        const { users } = result;
-                        // 방에 남은 인원이 있는 경우 if result is not null)
-                        io.to(socket.currentRoom).emit('room_update', { 
-                            roomId: socket.currentRoom, 
-                            users: users
-                        });
-                        console.log(`[SYSTEM] Room ${socket.currentRoom} updated. Total: ${users.length}`);
-                    } else {
-                        // 추가 권장: result가 null이면 마지막 유저가 나가서 방이 삭제된 상태입니다.
-                        console.log(`[SYSTEM] Room ${socket.currentRoom} is now empty and removed from Redis.`);
-                    }
+                    const timer = setTimeout(async () => {
+                        try {
+                            const result = await removeUserFromRoom(pubClient, roomId, socketId);
+                            
+                            if (result) {
+                                const { users } = result;
+
+                                console.log(`[SYSTEM] Room ${socket.currentRoom} updated. Total: ${users.length}`);
+
+                                io.to(roomId).emit('room_update', { 
+                                    roomId: socket.currentRoom, 
+                                    users: users
+                                });
+                            } else {
+                                // 추가 권장: result가 null이면 마지막 유저가 나가서 방이 삭제된 상태입니다.
+                                console.log(`[SYSTEM] Room ${socket.currentRoom} is now empty and removed from Redis.`);
+                            }
+                        } catch (err) {
+                            console.error("[CLEANUP ERROR]", err);
+                        } finally {
+                            reconnectionTimers.delete(socketId);
+                        }
+                    }, 10000);
+                    // 타이머 관리 Map에 저장 (이걸 해야 try_reconnect에서 취소가 가능함)
+                    reconnectionTimers.set(socketId, timer);
                 } else {
                     // 방에 입장하지 않고 연결만 끊긴 경우
                     console.log(`[SYSTEM] User disconnected before joining any room: ${socket.id} (${reason})`);
