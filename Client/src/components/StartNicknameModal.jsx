@@ -6,7 +6,7 @@ function StartNicknameModal({
 
   const handleJoinClick = () => {
 
-    // 공백 방지
+    // 닉네임 공백 방지
     if (!nickname.trim()) {
       return;
     }
@@ -38,7 +38,7 @@ function StartNicknameModal({
         {/* 입력창 */}
         <input
           type="text"
-          placeholder="닉네임 입력하기"
+          placeholder="닉네임을 입력하세요"
           className="form-control text-center mb-4"
           style={{
             width: "300px",
@@ -63,7 +63,7 @@ function StartNicknameModal({
 
           onClick={handleJoinClick}
         >
-          입장하기
+          게임 입장
         </button>
 
       </div>

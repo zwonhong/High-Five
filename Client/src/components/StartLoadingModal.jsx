@@ -14,8 +14,8 @@ function StartLoadingModal() {
         <div
           className="bg-white border border-dark d-flex flex-column justify-content-center align-items-center"
           style={{
-            width: "420px",
-            height: "240px",
+            width: "500px",
+            height: "300px",
             borderRadius: "40px"
           }}
         >

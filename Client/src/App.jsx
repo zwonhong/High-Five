@@ -19,8 +19,7 @@ function App() {
               nickname={nickname}
               setGameStarted={setGameStarted}
             />
-          )
-          : (
+          ) : (
             <StartScreen
               setGameStarted={setGameStarted}
               nickname={nickname}

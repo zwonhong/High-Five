@@ -3,32 +3,59 @@ import { useState } from "react";
 import StartNicknameModal from "./StartNicknameModal";
 import StartLoadingModal from "./StartLoadingModal";
 
-function StartScreen() {
+function StartScreen({
+  nickname,
+  setNickname,
+  setGameStarted
+}) {
 
-  const [nickname, setNickname] = useState("");
   const [showModal, setShowModal] = useState(false);
+
   const [isWaiting, setIsWaiting] = useState(false);
-  const [gameStarted, setGameStarted] = useState(false);
+
+  /* useEffect(() => {
+
+  socket.on("game_start", () => {
+
+    console.log("game_start 수신");
+
+    setIsWaiting(false);
+
+    setGameStarted(true);
+
+  });
+
+  return () => {
+    socket.off("game_start");
+  };
+
+  }, [socket]); 
+  */
+
   const handleJoinGame = () => {
 
     console.log("입장 버튼 클릭");
 
+    //닉네임 모달 닫고, 로딩 모달 실행
     setShowModal(false);
 
     setIsWaiting(true);
 
-    // 임시 서버 대기
+    // 임시 서버 대기(테스트용)
     setTimeout(() => {
 
+      setIsWaiting(false);
       setGameStarted(true);
 
     }, 2000);
-  };
 
-  // 임시 게임 화면
-  if (gameStarted) {
-    return <div>GameScreen</div>;
-  }
+    /* // 실제 소켓 연결 시
+    socket.emit("game_wait", {
+      nickname
+    });
+    */
+
+  };
 
   return (
 

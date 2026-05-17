@@ -12,6 +12,14 @@ function GameScreen({ nickname, setGameStarted }) {
 
   const [showGameResultModal, setShowGameResultModal] = useState(false);
 
+  /* useEffect(() => {
+
+    socket.emit("round_start");
+
+  }, [socket]); 
+  */
+
+  // 테스트용 데이터
   const [players, setPlayers] = useState([
     "young",
     "min",
@@ -30,6 +38,7 @@ function GameScreen({ nickname, setGameStarted }) {
     }
   ]);
 
+  
   return (
 
     <div className="game-wrapper">
