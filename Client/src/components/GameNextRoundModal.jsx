@@ -13,8 +13,8 @@ function GameNextRoundModal({ round }) {
         <div
           className="bg-white d-flex flex-column justify-content-center align-items-center"
           style={{
-            width: "400px",
-            height: "220px",
+            width: "500px",
+            height: "300px",
             borderRadius: "30px"
           }}
         >

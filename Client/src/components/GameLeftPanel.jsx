@@ -138,37 +138,37 @@ function GameLeftPanel({
 
                 return (
 
-          <div
-            key={index}
-            className="round-divider"
-          >
-            -- ROUND {message.round} --
-          </div>
+                  <div
+                    key={index}
+                    className="round-divider"
+                  >
+                    -- ROUND {message.round} --
+                  </div>
 
-          );
+                );
               }
 
-          return (
+              return (
 
-          <div
-            key={index}
-            className={
-              message.type === "answer"
-                ? "answer-message"
-                : "normal-message"
-            }
-          >
+                <div
+                  key={index}
+                  className={
+                    message.type === "answer"
+                      ? "answer-message"
+                      : "normal-message"
+                  }
+                >
 
-<div>
+                  <div>
 
-<strong>{message.user}</strong>
-: {message.text}
+                    <strong>{message.user}</strong>
+                    : {message.text}
 
-</div>
+                  </div>
 
-          </div>
+                </div>
 
-          );
+              );
             })
           }
 
