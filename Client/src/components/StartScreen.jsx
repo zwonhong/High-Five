@@ -1,12 +1,37 @@
 import { useState } from "react";
+
 import StartNicknameModal from "./StartNicknameModal";
+import StartLoadingModal from "./StartLoadingModal";
 
-function StartScreen({ setGameStarted }) {
+function StartScreen() {
 
-  const [showModal, setShowModal] = useState(false);
   const [nickname, setNickname] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [isWaiting, setIsWaiting] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const handleJoinGame = () => {
+
+    console.log("입장 버튼 클릭");
+
+    setShowModal(false);
+
+    setIsWaiting(true);
+
+    // 임시 서버 대기
+    setTimeout(() => {
+
+      setGameStarted(true);
+
+    }, 2000);
+  };
+
+  // 임시 게임 화면
+  if (gameStarted) {
+    return <div>GameScreen</div>;
+  }
 
   return (
+
     <div className="container-fluid p-4">
 
       <div
@@ -46,14 +71,21 @@ function StartScreen({ setGameStarted }) {
 
         </div>
 
-        {/* 모달 */}
+        {/* 닉네임 모달 */}
         {
           showModal && (
             <StartNicknameModal
               nickname={nickname}
               setNickname={setNickname}
-              setGameStarted={setGameStarted}
+              onJoinGame={handleJoinGame}
             />
+          )
+        }
+
+        {/* 로딩 모달 */}
+        {
+          isWaiting && (
+            <StartLoadingModal />
           )
         }
 
