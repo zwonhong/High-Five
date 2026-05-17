@@ -1,7 +1,7 @@
 :root {
 
   /* 전체 UI 기준 크기 */
-  --ui-scale: clamp(450px, min(60vw, 75vh), 600px);
+  --ui-scale: clamp(420px, min(60vw, 75vh), 560px);
 
   /* 비율 계산용 */
   --scale: calc(var(--ui-scale) / 600px);

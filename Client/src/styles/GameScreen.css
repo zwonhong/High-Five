@@ -238,8 +238,6 @@ a
 
 /* 툴바 */
 
-/* 툴바 */
-
 .toolbar {
 
   width: 100%;
@@ -306,7 +304,7 @@ a
 
 .tool-button:hover {
 
-  background: #5edfff;
+  background: #d4d4d4;
 
   transform: translateY(calc(-2px * var(--scale)));
 
@@ -316,23 +314,16 @@ a
     rgba(0,0,0,0.15);
 }
 
+.tool-button.blue:hover {
 
-/* 클릭 */
-
-.tool-button:active {
-
-  transform: scale(0.93);
+  background: #c8ccff;
 }
 
+.tool-button.red:hover {
 
-/* 선택된 버튼 */
-
-.tool-button.active {
-
-  background: #37d2ff;
-
-  color: white;
+  background: #fed0d0;
 }
+
 
 
 /* RIGHT PANEL */

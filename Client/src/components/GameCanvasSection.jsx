@@ -33,11 +33,11 @@ function GameCanvasSection() {
           <Pencil size={24} strokeWidth={1.5}/>
         </button>
 
-        <button class="tool-button">
+        <button class="tool-button blue">
           <Pencil size={24} color="blue" strokeWidth={1.5}/>
         </button>
 
-        <button class="tool-button">
+        <button class="tool-button red">
           <Pencil size={24} color="red" strokeWidth={1.5}/>
         </button>
 
