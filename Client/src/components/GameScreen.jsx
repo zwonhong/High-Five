@@ -16,7 +16,7 @@ function GameScreen({
   setGameStarted
 }) {
 
-  // timeout 시간
+  // timeout 시간(테스트용으로 10초)
   const TIME_LIMIT = 10;
   // 현재 라운드
   const [currentRound, setCurrentRound] = useState(1);
@@ -215,7 +215,9 @@ function GameScreen({
           setMessages={setMessages}
         />
 
-        <GameCanvasSection />
+        <GameCanvasSection
+          isRoundEnded={isRoundEnded}
+        />
 
         <GameRightPanel
           players={players}
