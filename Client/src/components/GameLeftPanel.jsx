@@ -107,7 +107,7 @@ function GameLeftPanel({
       <div className="info-box common-box">
 
         <h5>
-          ({nickname})
+          {nickname}
         </h5>
 
       </div>

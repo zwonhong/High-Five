@@ -1,4 +1,7 @@
-function GameRightPanel({ players }) {
+function GameRightPanel({
+  players,
+  timeLeft
+}) {
 
   return (
 
@@ -27,7 +30,9 @@ function GameRightPanel({ players }) {
       {/* 타이머 */}
       <div className="timer-box common-box">
 
-        30
+        <h3>
+          ⏰ {timeLeft}
+        </h3>
 
       </div>
 

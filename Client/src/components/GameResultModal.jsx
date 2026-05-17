@@ -1,5 +1,6 @@
 function GameResultModal({
   winner,
+  nickname,
   currentRound,
   maxRound,
   onNextRound,
@@ -52,17 +53,26 @@ function GameResultModal({
           </button>
 
           {/* 나가기 */}
-          <button
-            className="btn btn-danger"
-            onClick={() => {
+          {
+            currentRound < maxRound && (
 
-              // socket.emit("game_end");
+              <button
+                className="btn btn-danger"
 
-              setGameStarted(false);
-            }}
-          >
-            나가기
-          </button>
+                onClick={() => {
+
+                  console.log("user_exit 전송");
+
+                  // socket.emit("user_exit");
+
+                  setGameStarted(false);
+                }}
+              >
+                나가기
+              </button>
+
+            )
+          }
 
         </div>
 
