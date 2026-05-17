@@ -162,6 +162,26 @@
 
 /* 채팅 메시지 */
 
+.answer-message {
+
+  color: #ff4d6d;
+
+  font-weight: bold;
+}
+
+.round-divider {
+
+  width: 100%;
+
+  text-align: center;
+
+  margin: 3px 0;
+
+  font-weight: bold;
+
+  color: #666;
+}
+
 .chat-messages {
 
   flex: 1;
@@ -170,6 +190,23 @@
   
 }
 
+.normal-message {
+
+  color: black;
+}
+
+.answer-message {
+
+  color: #000000;
+
+  font-weight: bold;
+
+  background-color: rgba(255, 0, 119, 0.293);
+
+  border-radius: 20px;
+
+  padding: 2px 5px;
+}
 
 /* 가이드 */
 

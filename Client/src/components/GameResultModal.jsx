@@ -1,6 +1,6 @@
 function GameResultModal({
     winner,
-    setShowGameResultModal,
+    onNextRound,
     setGameStarted
   }) {
   
@@ -9,7 +9,8 @@ function GameResultModal({
       <div
         className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
         style={{
-          backgroundColor: "rgba(0,0,0,0.3)"
+          backgroundColor: "rgba(0,0,0,0.3)",
+          zIndex: 3000
         }}
       >
   
@@ -36,32 +37,25 @@ function GameResultModal({
           <div>
   
             {/* 계속하기 */}
-            <button
-              className="btn btn-light border border-dark me-3"
-              style={{
-                width: "150px",
-                height: "60px",
-                borderRadius: "20px"
-              }}
-  
-              onClick={() => setShowGameResultModal(false)}
-            >
-              계속하기
-            </button>
-  
-            {/* 나가기 */}
-            <button
-              className="btn btn-light border border-dark"
-              style={{
-                width: "150px",
-                height: "60px",
-                borderRadius: "20px"
-              }}
-  
-              onClick={() => setGameStarted(false)}
-            >
-              나가기
-            </button>
+          <button
+            className="btn btn-primary"
+            onClick={onNextRound}
+          >
+            계속하기
+          </button>
+
+          {/* 나가기 */}
+          <button
+            className="btn btn-danger"
+            onClick={() => {
+
+              // socket.emit("game_end");
+
+              setGameStarted(false);
+            }}
+          >
+            나가기
+          </button>
   
           </div>
   

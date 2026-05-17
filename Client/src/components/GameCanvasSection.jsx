@@ -27,25 +27,25 @@ function GameCanvasSection() {
       </div>
 
       {/* 툴바 */}
-      <div class="toolbar">
+      <div className="toolbar">
 
-        <button class="tool-button">
+        <button className="tool-button">
           <Pencil size={24} strokeWidth={1.5}/>
         </button>
 
-        <button class="tool-button blue">
+        <button className="tool-button blue">
           <Pencil size={24} color="blue" strokeWidth={1.5}/>
         </button>
 
-        <button class="tool-button red">
+        <button className="tool-button red">
           <Pencil size={24} color="red" strokeWidth={1.5}/>
         </button>
 
-        <button class="tool-button">
+        <button className="tool-button">
           <Eraser size={24} strokeWidth={1.5}/>
         </button>
 
-        <button class="tool-button">
+        <button className="tool-button">
           <Undo2 size={24} strokeWidth={1.5}/>
         </button>
 

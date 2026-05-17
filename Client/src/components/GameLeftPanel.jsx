@@ -1,6 +1,10 @@
 import { useState } from "react";
 
-function GameLeftPanel({ nickname, messages }) {
+function GameLeftPanel({
+  nickname,
+  messages,
+  setMessages
+}) {
 
   // 현재 입력 중인 채팅
   const [chatInput, setChatInput] = useState("");
@@ -35,6 +39,18 @@ function GameLeftPanel({ nickname, messages }) {
          message: chatInput
       });
       */
+      // 임시 테스트용
+      setMessages((prev) => [
+
+        ...prev,
+
+        {
+          user: nickname,
+          text: chatInput,
+          type: "normal"
+        }
+
+      ]);
 
     }
 
@@ -50,6 +66,19 @@ function GameLeftPanel({ nickname, messages }) {
       });
       */
 
+      // 임시 UI 테스트용
+      setMessages((prev) => [
+
+        ...prev,
+
+        {
+          user: nickname,
+          text: chatInput,
+          type: "answer"
+        }
+
+      ]);
+
       // 정답모드는 1회만 유지
       setIsAnswerMode(false);
     }
@@ -58,8 +87,12 @@ function GameLeftPanel({ nickname, messages }) {
     setChatInput("");
   };
 
-  // 엔터 입력 처리
   const handleKeyDown = (e) => {
+
+    // 한글 입력 채팅 error처리용
+    if (e.nativeEvent.isComposing) {
+      return;
+    }
 
     if (e.key === "Enter") {
       handleSendMessage();
@@ -74,7 +107,7 @@ function GameLeftPanel({ nickname, messages }) {
       <div className="info-box common-box">
 
         <h5>
-          사용자 ({nickname})
+          ({nickname})
         </h5>
 
       </div>
@@ -87,9 +120,8 @@ function GameLeftPanel({ nickname, messages }) {
           className={`chat-send-button ${isAnswerMode ? "answer-active" : ""}`}
 
           style={{
-            width: "70px"
+            width: "60px"
           }}
-
           onClick={handleAnswerMode}
         >
           정답!
@@ -99,24 +131,45 @@ function GameLeftPanel({ nickname, messages }) {
         <div className="chat-messages">
 
           {
-            messages.map((message, index) => (
+            messages.map((message, index) => {
 
-              <div
-                key={index}
+              // ROUND 구분선
+              if (message.type === "round") {
 
-                className={
-                  message.type === "answer"
-                    ? "answer-message"
-                    : "normal-message"
-                }
-              >
+                return (
 
-                <strong>{message.user}</strong>
-                : {message.text}
+          <div
+            key={index}
+            className="round-divider"
+          >
+            -- ROUND {message.round} --
+          </div>
 
-              </div>
+          );
+              }
 
-            ))
+          return (
+
+          <div
+            key={index}
+            className={
+              message.type === "answer"
+                ? "answer-message"
+                : "normal-message"
+            }
+          >
+
+<div>
+
+<strong>{message.user}</strong>
+: {message.text}
+
+</div>
+
+          </div>
+
+          );
+            })
           }
 
         </div>
@@ -144,7 +197,6 @@ function GameLeftPanel({ nickname, messages }) {
           {/* 전송 버튼 */}
           <button
             className="chat-send-button"
-
             onClick={handleSendMessage}
           >
             ↑
