@@ -1,13 +1,14 @@
 import { useState } from "react";
 
 import { useSocketStore } from "../stores/useSocketStore";
+import { sendChatMessage } from "../socket/socketActions";
 
-function GameLeftPanel({
-  messages,
-  setMessages
-}) {
+function GameLeftPanel() {
 
+  // 닉네임
   const nickname = useSocketStore((state) => state.nickname);
+  // 채팅 메시지 목록 (서버 수신 + 라운드 구분선)
+  const chatList = useSocketStore((state) => state.chatList);
 
   // 현재 입력 중인 채팅
   const [chatInput, setChatInput] = useState("");
@@ -26,63 +27,14 @@ function GameLeftPanel({
   // 채팅 전송
   const handleSendMessage = () => {
 
-    // 공백 입력 방지
-    if (!chatInput.trim()) {
+    const success = sendChatMessage(chatInput);
+
+    if (!success) {
       return;
     }
 
-    // 일반 채팅 전송
-    if (!isAnswerMode) {
-
-      console.log("일반 채팅 전송");
-
-      /* 
-      socket.emit("chat_message", {
-         type: "normal",
-         message: chatInput
-      });
-      */
-      // 임시 테스트용
-      setMessages((prev) => [
-
-        ...prev,
-
-        {
-          user: nickname,
-          text: chatInput,
-          type: "normal"
-        }
-
-      ]);
-
-    }
-
-    // 정답 채팅 전송
-    else {
-
-      console.log("정답 채팅 전송");
-
-      /*
-      socket.emit("chat_message", {
-        type: "answer",
-        message: chatInput
-      });
-      */
-
-      // 임시 UI 테스트용
-      setMessages((prev) => [
-
-        ...prev,
-
-        {
-          user: nickname,
-          text: chatInput,
-          type: "answer"
-        }
-
-      ]);
-
-      // 정답모드는 1회만 유지
+    // 정답모드는 1회만 유지
+    if (isAnswerMode) {
       setIsAnswerMode(false);
     }
 
@@ -134,7 +86,7 @@ function GameLeftPanel({
         <div className="chat-messages">
 
           {
-            messages.map((message, index) => {
+            chatList.map((message, index) => {
 
               // ROUND 구분선
               if (message.type === "round") {
@@ -155,17 +107,13 @@ function GameLeftPanel({
 
                 <div
                   key={index}
-                  className={
-                    message.type === "answer"
-                      ? "answer-message"
-                      : "normal-message"
-                  }
+                  className="normal-message"
                 >
 
                   <div>
 
-                    <strong>{message.user}</strong>
-                    : {message.text}
+                    <strong>{message.sender}</strong>
+                    : {message.message}
 
                   </div>
 

@@ -16,12 +16,19 @@ function GameCanvasSection({
 }) {
 
   const PEN_WIDTH = 1.5;
+  // canvas ref
   const canvasRef = useRef(null);
+  // 그리기 권한 여부 (game_start의 canDraw로 결정)
   const isDrawer = useSocketStore((state) => state.isDrawer);
+  // 현재 그림 그리고 있는지
   const [isDrawing, setIsDrawing] = useState(false);
+  // 현재 색상
   const [currentColor, setCurrentColor] = useState("#000000");
+  // 현재 tool
   const [currentTool, setCurrentTool] = useState("pen");
+  // 현재 그리고 있는 stroke
   const [currentStroke, setCurrentStroke] = useState(null);
+  // 전체 stroke 저장
   const [strokes, setStrokes] = useState([]);
 
   // canvas 초기화
@@ -229,7 +236,7 @@ function GameCanvasSection({
     ctx.stroke();
   };
 
-  // undo — 서버에 해당 이벤트 없어서 로컬 전용 (다른 유저와 동기화 안 됨)
+  // undo (서버에 해당 이벤트 없어 로컬 전용)
   const handleUndo = () => {
 
     if (!isDrawer) {
@@ -239,7 +246,7 @@ function GameCanvasSection({
     setStrokes((prev) => prev.slice(0, -1));
   };
 
-  // eraser — 로컬 전용
+  // 특정 stroke 지우기 (서버에 해당 이벤트 없어 로컬 전용)
   const eraseStroke = (clickPos) => {
 
     const CLICK_RANGE = 10;
@@ -261,7 +268,7 @@ function GameCanvasSection({
     setStrokes(filtered);
   };
 
-  // 캔버스 로컬 초기화 (clear_canvas 수신 시 호출)
+  // 전체 초기화 (clear_canvas 수신 시 호출)
   const clearCanvasLocally = () => {
 
     const canvas = canvasRef.current;
