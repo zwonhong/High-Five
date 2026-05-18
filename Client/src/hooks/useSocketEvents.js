@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { socketClient } from '../socket/socketClient'
 import { useSocketStore } from '../stores/useSocketStore'
+import { useGamePhaseStore } from '../stores/useGamePhaseStore'
 
 export function useSocketEvents() {
   const setRoomId = useSocketStore((state) => state.setRoomId)
@@ -8,6 +9,9 @@ export function useSocketEvents() {
   const addChatMessage = useSocketStore((state) => state.addChatMessage)
   const setIsConnected = useSocketStore((state) => state.setIsConnected)
   const setHasJoined = useSocketStore((state) => state.setHasJoined)
+  const setErrorMessage = useSocketStore((state) => state.setErrorMessage)
+
+  const goToPlaying = useGamePhaseStore((state) => state.goToPlaying)
 
   useEffect(() => {
     socketClient.on('connect', () => {
@@ -30,11 +34,23 @@ export function useSocketEvents() {
       addChatMessage(data)
     })
 
+    socketClient.on('game_start', () => {
+      console.log('game_start 수신')
+      goToPlaying()
+    })
+
+    socketClient.on('error_message', (msg) => {
+      console.log('error_message 수신:', msg)
+      setErrorMessage(msg)
+    })
+
     return () => {
       socketClient.off('connect')
       socketClient.off('disconnect')
       socketClient.off('room_update')
       socketClient.off('receive_chat')
+      socketClient.off('game_start')
+      socketClient.off('error_message')
     }
-  }, [setRoomId, setUsers, addChatMessage, setIsConnected, setHasJoined])
+  }, [setRoomId, setUsers, addChatMessage, setIsConnected, setHasJoined, setErrorMessage, goToPlaying])
 }

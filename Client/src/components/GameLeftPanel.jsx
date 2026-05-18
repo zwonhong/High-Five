@@ -1,10 +1,13 @@
 import { useState } from "react";
 
+import { useSocketStore } from "../stores/useSocketStore";
+
 function GameLeftPanel({
-  nickname,
   messages,
   setMessages
 }) {
+
+  const nickname = useSocketStore((state) => state.nickname);
 
   // 현재 입력 중인 채팅
   const [chatInput, setChatInput] = useState("");

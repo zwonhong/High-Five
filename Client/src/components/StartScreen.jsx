@@ -1,60 +1,37 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import StartNicknameModal from "./StartNicknameModal";
 import StartLoadingModal from "./StartLoadingModal";
+import { useSocketStore } from "../stores/useSocketStore";
+import { joinAutoRoom } from "../socket/socketActions";
 
-function StartScreen({
-  nickname,
-  setNickname,
-  setGameStarted
-}) {
+function StartScreen() {
+
+  const nickname = useSocketStore((state) => state.nickname);
+  const errorMessage = useSocketStore((state) => state.errorMessage);
+  const clearErrorMessage = useSocketStore((state) => state.clearErrorMessage);
 
   const [showModal, setShowModal] = useState(false);
-
   const [isWaiting, setIsWaiting] = useState(false);
 
-  /* useEffect(() => {
-
-  socket.on("game_start", () => {
-
-    console.log("game_start 수신");
-
-    setIsWaiting(false);
-
-    setGameStarted(true);
-
-  });
-
-  return () => {
-    socket.off("game_start");
-  };
-
-  }, [socket]); 
-  */
+  // 서버에서 error_message 수신 시 대기 상태 해제하고 닉네임 모달로 복귀
+  useEffect(() => {
+    if (errorMessage && isWaiting) {
+      setIsWaiting(false);
+      setShowModal(true);
+      clearErrorMessage();
+    }
+  }, [errorMessage, isWaiting, clearErrorMessage]);
 
   const handleJoinGame = () => {
+    const success = joinAutoRoom(nickname);
 
-    console.log("입장 버튼 클릭");
+    if (!success) {
+      return;
+    }
 
-    //닉네임 모달 닫고, 로딩 모달 실행
     setShowModal(false);
-
     setIsWaiting(true);
-
-    // 임시 서버 대기(테스트용)
-    setTimeout(() => {
-
-      setIsWaiting(false);
-      setGameStarted(true);
-
-    }, 2000);
-
-    /* // 실제 소켓 연결 시
-    socket.emit("game_wait", {
-      nickname
-    });
-    */
-
   };
 
   return (
@@ -102,9 +79,8 @@ function StartScreen({
         {
           showModal && (
             <StartNicknameModal
-              nickname={nickname}
-              setNickname={setNickname}
               onJoinGame={handleJoinGame}
+              errorMessage={errorMessage}
             />
           )
         }

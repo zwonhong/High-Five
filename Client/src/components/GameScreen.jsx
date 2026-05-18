@@ -10,11 +10,11 @@ import GameResultModal from "./GameResultModal";
 import GameNextRoundModal from "./GameNextRoundModal";
 import GameEndModal from "./GameEndModal";
 import GameTimeoutModal from "./GameTimeoutModal";
+import { useSocketStore } from "../stores/useSocketStore";
 
-function GameScreen({
-  nickname,
-  setGameStarted
-}) {
+function GameScreen() {
+
+  const nickname = useSocketStore((state) => state.nickname);
 
   // timeout 시간(테스트용으로 10초)
   const TIME_LIMIT = 10;
@@ -210,7 +210,6 @@ function GameScreen({
       <div className="game-layout">
 
         <GameLeftPanel
-          nickname={nickname}
           messages={messages}
           setMessages={setMessages}
         />
@@ -229,11 +228,9 @@ function GameScreen({
 
             <GameResultModal
               winner={nickname}
-              nickname={nickname}
               currentRound={currentRound}
               maxRound={maxRound}
               onNextRound={handleNextRound}
-              setGameStarted={setGameStarted}
             />
 
           )
@@ -254,7 +251,6 @@ function GameScreen({
 
             <GameEndModal
               gameEndData={gameEndData}
-              setGameStarted={setGameStarted}
             />
 
           )
@@ -267,7 +263,6 @@ function GameScreen({
               currentRound={currentRound}
               maxRound={maxRound}
               onNextRound={handleNextRound}
-              setGameStarted={setGameStarted}
             />
 
           )

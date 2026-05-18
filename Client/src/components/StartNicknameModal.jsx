@@ -1,8 +1,12 @@
+import { useSocketStore } from "../stores/useSocketStore";
+
 function StartNicknameModal({
-  nickname,
-  setNickname,
-  onJoinGame
+  onJoinGame,
+  errorMessage = '',
 }) {
+
+  const nickname = useSocketStore((state) => state.nickname);
+  const setNickname = useSocketStore((state) => state.setNickname);
 
   const handleJoinClick = () => {
 
@@ -34,6 +38,15 @@ function StartNicknameModal({
           borderRadius: "40px"
         }}
       >
+
+        {/* 에러 메시지 */}
+        {
+          errorMessage && (
+            <p className="text-danger mb-2" style={{ fontSize: "14px" }}>
+              {errorMessage}
+            </p>
+          )
+        }
 
         {/* 입력창 */}
         <input

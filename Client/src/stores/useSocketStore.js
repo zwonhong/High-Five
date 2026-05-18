@@ -8,6 +8,7 @@ export const useSocketStore = create((set) => ({
   chatList: [],
   isConnected: false,
   hasJoined: false,
+  errorMessage: '',
 
   setNickname: (nickname) => set({ nickname }),
   setRoomId: (roomId) => set({ roomId }),
@@ -15,6 +16,8 @@ export const useSocketStore = create((set) => ({
   setChatInput: (chatInput) => set({ chatInput }),
   setIsConnected: (isConnected) => set({ isConnected }),
   setHasJoined: (hasJoined) => set({ hasJoined }),
+  setErrorMessage: (errorMessage) => set({ errorMessage }),
+  clearErrorMessage: () => set({ errorMessage: '' }),
 
   addChatMessage: (chatMessage) =>
     set((state) => ({
@@ -30,5 +33,6 @@ export const useSocketStore = create((set) => ({
       chatList: [],
       isConnected: false,
       hasJoined: false,
+      errorMessage: '',
     }),
 }))
