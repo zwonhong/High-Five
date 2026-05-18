@@ -10,6 +10,7 @@ export function useSocketEvents() {
   const setIsConnected = useSocketStore((state) => state.setIsConnected)
   const setHasJoined = useSocketStore((state) => state.setHasJoined)
   const setErrorMessage = useSocketStore((state) => state.setErrorMessage)
+  const setIsDrawer = useSocketStore((state) => state.setIsDrawer)
 
   const goToPlaying = useGamePhaseStore((state) => state.goToPlaying)
 
@@ -34,8 +35,9 @@ export function useSocketEvents() {
       addChatMessage(data)
     })
 
-    socketClient.on('game_start', () => {
-      console.log('game_start 수신')
+    socketClient.on('game_start', (data) => {
+      console.log('game_start 수신', data)
+      setIsDrawer(data.canDraw ?? false)
       goToPlaying()
     })
 
@@ -52,5 +54,5 @@ export function useSocketEvents() {
       socketClient.off('game_start')
       socketClient.off('error_message')
     }
-  }, [setRoomId, setUsers, addChatMessage, setIsConnected, setHasJoined, setErrorMessage, goToPlaying])
+  }, [setRoomId, setUsers, addChatMessage, setIsConnected, setHasJoined, setErrorMessage, setIsDrawer, goToPlaying])
 }

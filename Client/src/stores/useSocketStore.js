@@ -9,6 +9,7 @@ export const useSocketStore = create((set) => ({
   isConnected: false,
   hasJoined: false,
   errorMessage: '',
+  isDrawer: false,
 
   setNickname: (nickname) => set({ nickname }),
   setRoomId: (roomId) => set({ roomId }),
@@ -18,6 +19,7 @@ export const useSocketStore = create((set) => ({
   setHasJoined: (hasJoined) => set({ hasJoined }),
   setErrorMessage: (errorMessage) => set({ errorMessage }),
   clearErrorMessage: () => set({ errorMessage: '' }),
+  setIsDrawer: (isDrawer) => set({ isDrawer }),
 
   addChatMessage: (chatMessage) =>
     set((state) => ({
@@ -34,5 +36,6 @@ export const useSocketStore = create((set) => ({
       isConnected: false,
       hasJoined: false,
       errorMessage: '',
+      isDrawer: false,
     }),
 }))
