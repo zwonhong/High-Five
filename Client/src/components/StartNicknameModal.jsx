@@ -5,6 +5,7 @@ function StartNicknameModal({
   errorMessage = '',
 }) {
 
+  // 닉네임
   const nickname = useSocketStore((state) => state.nickname);
   const setNickname = useSocketStore((state) => state.setNickname);
 
