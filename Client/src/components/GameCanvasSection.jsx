@@ -6,6 +6,9 @@ import {
   Undo2
 } from "lucide-react";
 
+import { socketClient } from "../socket/socketClient";
+import { useSocketStore } from "../stores/useSocketStore";
+
 function GameCanvasSection({
 
   isRoundEnded
@@ -15,8 +18,8 @@ function GameCanvasSection({
   const PEN_WIDTH = 1.5;
   // canvas ref
   const canvasRef = useRef(null);
-  // drawer 여부 (테스트용)
-  const [isDrawer, setIsDrawer] = useState(true);
+  // 그리기 권한 여부 (game_start의 canDraw로 결정)
+  const isDrawer = useSocketStore((state) => state.isDrawer);
   // 현재 그림 그리고 있는지
   const [isDrawing, setIsDrawing] = useState(false);
   // 현재 색상
@@ -27,6 +30,7 @@ function GameCanvasSection({
   const [currentStroke, setCurrentStroke] = useState(null);
   // 전체 stroke 저장
   const [strokes, setStrokes] = useState([]);
+
   // canvas 초기화
   useEffect(() => {
 
@@ -41,16 +45,37 @@ function GameCanvasSection({
 
   }, []);
 
-  // 라운드 종료 시 초기화
+  // 다른 사람 stroke 수신
+  useEffect(() => {
+
+    socketClient.on('receive_draw', (stroke) => {
+      setStrokes((prev) => [...prev, stroke]);
+    });
+
+    // clear_canvas는 서버가 모든 유저에게 브로드캐스트하므로 나 포함 모두 초기화
+    socketClient.on('clear_canvas', () => {
+      clearCanvasLocally();
+    });
+
+    return () => {
+      socketClient.off('receive_draw');
+      socketClient.off('clear_canvas');
+    };
+
+  }, []);
+
+  // 라운드 종료 시 캔버스 초기화 emit (drawer만)
   useEffect(() => {
 
     if (!isRoundEnded) {
       return;
     }
 
-    clearCanvas();
+    if (isDrawer) {
+      socketClient.emit('clear_canvas');
+    }
 
-  }, [isRoundEnded]);
+  }, [isRoundEnded, isDrawer]);
 
   // strokes 변경 시 다시 그리기
   useEffect(() => {
@@ -63,9 +88,9 @@ function GameCanvasSection({
   const getMousePosition = (e) => {
 
     const canvas = canvasRef.current;
-  
+
     const rect = canvas.getBoundingClientRect();
-  
+
     return {
       x: (e.clientX - rect.left) * (canvas.width / rect.width),
       y: (e.clientY - rect.top) * (canvas.height / rect.height)
@@ -75,14 +100,12 @@ function GameCanvasSection({
   // 그리기 시작
   const handleMouseDown = (e) => {
 
-    // drawer만 가능
     if (!isDrawer) {
       return;
     }
 
     const pos = getMousePosition(e);
 
-    // eraser 모드
     if (currentTool === "eraser") {
 
       eraseStroke(pos);
@@ -136,7 +159,7 @@ function GameCanvasSection({
     });
   };
 
-  // 그리기 종료
+  // 그리기 종료 → 서버에 stroke 전송
   const handleMouseUp = () => {
 
     if (!isDrawing || !currentStroke) {
@@ -153,31 +176,9 @@ function GameCanvasSection({
 
     };
 
-    // stroke 저장
-    setStrokes((prev) => [
+    setStrokes((prev) => [...prev, newStroke]);
 
-      ...prev,
-
-      newStroke
-
-    ]);
-
-    // 서버 전송 데이터
-    const strokeData = {
-
-      roomId: "room1",
-
-      userId: "young",
-
-      stroke: newStroke
-
-    };
-
-    console.log("draw_update");
-
-    console.log(strokeData);
-
-    // socket.emit("draw_update", strokeData);
+    socketClient.emit('draw_data', newStroke);
 
     setCurrentStroke(null);
   };
@@ -189,35 +190,22 @@ function GameCanvasSection({
 
     const ctx = canvas.getContext("2d");
 
-    // 초기화
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "white";
 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 기존 stroke
     strokes.forEach((stroke) => {
 
-      drawStroke(
+      drawStroke(stroke.points, stroke.color);
 
-        stroke.points,
-
-        stroke.color
-
-      );
     });
 
-    // 현재 stroke
     if (tempStroke) {
 
-      drawStroke(
+      drawStroke(tempStroke.points, tempStroke.color);
 
-        tempStroke.points,
-
-        tempStroke.color
-
-      );
     }
   };
 
@@ -248,28 +236,17 @@ function GameCanvasSection({
     ctx.stroke();
   };
 
-  // undo
+  // undo (서버에 해당 이벤트 없어 로컬 전용)
   const handleUndo = () => {
 
     if (!isDrawer) {
       return;
     }
 
-    setStrokes((prev) => {
-
-      const updated = [...prev];
-
-      updated.pop();
-
-      return updated;
-    });
-
-    console.log("undo");
-
-    // socket.emit("undo");
+    setStrokes((prev) => prev.slice(0, -1));
   };
 
-  // eraser
+  // 특정 stroke 지우기 (서버에 해당 이벤트 없어 로컬 전용)
   const eraseStroke = (clickPos) => {
 
     const CLICK_RANGE = 10;
@@ -282,23 +259,17 @@ function GameCanvasSection({
 
         const dy = point.y - clickPos.y;
 
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        return distance < CLICK_RANGE;
+        return Math.sqrt(dx * dx + dy * dy) < CLICK_RANGE;
       });
 
       return !hit;
     });
 
     setStrokes(filtered);
-
-    console.log("erase");
-
-    // socket.emit("erase");
   };
 
-  // 전체 초기화
-  const clearCanvas = () => {
+  // 전체 초기화 (clear_canvas 수신 시 호출)
+  const clearCanvasLocally = () => {
 
     const canvas = canvasRef.current;
 

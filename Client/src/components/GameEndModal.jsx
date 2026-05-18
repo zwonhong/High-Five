@@ -1,7 +1,10 @@
+import { useGamePhaseStore } from "../stores/useGamePhaseStore";
+
 function GameEndModal({
   gameEndData,
-  setGameStarted
 }) {
+
+  const goToStart = useGamePhaseStore((state) => state.goToStart);
 
   return (
 
@@ -78,10 +81,7 @@ function GameEndModal({
 
         <button
           className="btn btn-primary mt-4"
-          onClick={() => {
-
-            setGameStarted(false);
-          }}
+          onClick={goToStart}
         >
           처음으로
         </button>

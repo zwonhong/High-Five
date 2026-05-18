@@ -10,11 +10,15 @@ import GameResultModal from "./GameResultModal";
 import GameNextRoundModal from "./GameNextRoundModal";
 import GameEndModal from "./GameEndModal";
 import GameTimeoutModal from "./GameTimeoutModal";
+import { useSocketStore } from "../stores/useSocketStore";
 
-function GameScreen({
-  nickname,
-  setGameStarted
-}) {
+function GameScreen() {
+
+  const nickname = useSocketStore((state) => state.nickname);
+  // 방 인원 목록 ({ id, nickname }[])
+  const users = useSocketStore((state) => state.users);
+  // 라운드 구분선을 채팅 목록에 추가할 때 사용
+  const addChatMessage = useSocketStore((state) => state.addChatMessage);
 
   // timeout 시간(테스트용으로 10초)
   const TIME_LIMIT = 10;
@@ -66,31 +70,8 @@ function GameScreen({
     ]
   });
 
-  // 플레이어 테스트 데이터
-  const [players, setPlayers] = useState([
-    "young",
-    "min",
-    "jisu",
-    "haeun"
-  ]);
-
-  // 채팅 테스트 데이터
-  const [messages, setMessages] = useState([
-    {
-      type: "round",
-      round: 1
-    },
-    {
-      user: "young",
-      text: "원숭이",
-      type: "normal"
-    },
-    {
-      user: "min",
-      text: "오랑우탄",
-      type: "answer"
-    }
-  ]);
+  // 닉네임 목록 (GameRightPanel용)
+  const players = users.map((u) => u.nickname);
 
   // 타이머
   useEffect(() => {
@@ -168,13 +149,10 @@ function GameScreen({
     setCurrentRound(nextRound);
 
     // 채팅 라운드 구분선 추가
-    setMessages((prev) => [
-      ...prev,
-      {
-        type: "round",
-        round: nextRound
-      }
-    ]);
+    addChatMessage({
+      type: "round",
+      round: nextRound
+    });
 
     // socket.emit("round_start");
 
@@ -209,11 +187,7 @@ function GameScreen({
 
       <div className="game-layout">
 
-        <GameLeftPanel
-          nickname={nickname}
-          messages={messages}
-          setMessages={setMessages}
-        />
+        <GameLeftPanel />
 
         <GameCanvasSection
           isRoundEnded={isRoundEnded}
@@ -229,11 +203,9 @@ function GameScreen({
 
             <GameResultModal
               winner={nickname}
-              nickname={nickname}
               currentRound={currentRound}
               maxRound={maxRound}
               onNextRound={handleNextRound}
-              setGameStarted={setGameStarted}
             />
 
           )
@@ -254,7 +226,6 @@ function GameScreen({
 
             <GameEndModal
               gameEndData={gameEndData}
-              setGameStarted={setGameStarted}
             />
 
           )
@@ -267,7 +238,6 @@ function GameScreen({
               currentRound={currentRound}
               maxRound={maxRound}
               onNextRound={handleNextRound}
-              setGameStarted={setGameStarted}
             />
 
           )

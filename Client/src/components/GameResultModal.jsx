@@ -1,11 +1,13 @@
+import { useGamePhaseStore } from "../stores/useGamePhaseStore";
+
 function GameResultModal({
   winner,
-  nickname,
   currentRound,
   maxRound,
   onNextRound,
-  setGameStarted
 }) {
+
+  const goToStart = useGamePhaseStore((state) => state.goToStart);
 
   return (
 
@@ -65,7 +67,7 @@ function GameResultModal({
 
                   // socket.emit("user_exit");
 
-                  setGameStarted(false);
+                  goToStart();
                 }}
               >
                 나가기
