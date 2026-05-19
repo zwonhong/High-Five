@@ -5,6 +5,7 @@ const { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, r
 // errorHandling
 const { redisConfig, handleRedisError, emitError } = require('./errorHandler');
 const { cleanupGhostUsers } = require('./sessionCleaner');
+const { startGame, assignTopic, checkAnswer, endRound, startTimer, clearTimer, handlePlayerLeave } = require('./gameManager');
 
 const reconnectionTimers = new Map(); // socketId -> setTimeout 객체
 
@@ -58,6 +59,28 @@ module.exports = async (server) => {
     pubClient.connect().catch(() => {});
     subClient.connect().catch(() => {});
 
+    // 라운드 종료 처리 (타이머 만료 or 모두 정답)
+    const handleRoundEnd = async (roomId) => {
+        clearTimer(roomId);
+        const result = await endRound(roomId);
+        if (!result) return;
+
+        io.to(roomId).emit('round_end', result.roundResult);
+
+        if (result.isGameOver) {
+            io.to(roomId).emit('game_end', { scores: result.scores, winner: result.winner });
+        } else {
+            io.to(roomId).emit('next_round', result.nextRound);
+
+            const topicData = await assignTopic(roomId);
+            if (topicData) {
+                const { topic, currentRound, totalRounds, drawer } = topicData;
+                io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
+                io.to(drawer.id).emit('round_start', { currentRound, totalRounds, drawer, topic });
+                startTimer(roomId, handleRoundEnd);
+            }
+        }
+    };
 
     // 연결 핸들링 Connection Handling
     io.on('connection', (socket) => {
@@ -110,9 +133,19 @@ module.exports = async (server) => {
                     console.log(`[SYSTEM] room update: ${roomId} (users: ${nickname}, total: ${users.length}/5)`);
                     io.to(roomId).emit('room_update', { roomId, users });
 
-                    if(isStarted) {
+                    if (isStarted) {
                         console.log(`[SYSTEM] room ${roomId} is now ready to start!`);
-                        io.to(roomId).emit('game_start', { roomId: roomId, canDraw: true});
+
+                        const gameData = await startGame(roomId, users);
+                        io.to(roomId).emit('game_started', gameData);
+
+                        const topicData = await assignTopic(roomId);
+                        if (topicData) {
+                            const { topic, currentRound, totalRounds, drawer } = topicData;
+                            io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
+                            io.to(drawer.id).emit('round_start', { currentRound, totalRounds, drawer, topic });
+                            startTimer(roomId, handleRoundEnd);
+                        }
                     }
                 } else {
                     // true를 전달하여 중복 닉네임 시 연결을 끊고 다시 입력하게 유도함 Force disconnect on duplicate nickname to prompt re-entry
@@ -126,29 +159,39 @@ module.exports = async (server) => {
 
         // 채팅 로직 Chat logic
         // 유저가 메시지를 보냈을 때 실행됩니다. When a user sends a message, this runs.
-        socket.on('send_chat', (msg) => {
+        socket.on('send_chat', async (msg) => {
             try {
                 const roomId = socket.currentRoom;
-                const nickname = socket.nickname; // join_auto 시점에 저장했던 닉네임 Use nickname saved at join_auto
+                const nickname = socket.nickname;
                 const now = Date.now();
 
-                // 간단한 스팸 방지 로직 (300ms 이상 간격을 두고 메시지 전송) Simple spam prevention logic (only allow sending messages at intervals of 300ms or more)
+                // 간단한 스팸 방지 로직 (300ms 이상 간격을 두고 메시지 전송)
                 if (socket.lastChatTime && now - socket.lastChatTime < 300) {
                     socket.emit('error_message', "천천히 입력해주세요.");
                     return;
                 }
                 socket.lastChatTime = now;
 
-                // 방에 속해 있고 메시지가 비어있지 않은 경우에만 전송 Only send if user is in a room and message is not empty
                 if (roomId && msg.trim()) {
                     io.to(roomId).emit('receive_chat', {
-                        sender: socket.nickname, // 입장 시 저장했던 닉네임 활용 Use nickname saved at join_auto
+                        sender: nickname,
                         message: msg,
-                        timestamp: now // 클라이언트에서 이 순서대로 정렬
+                        timestamp: now
                     });
-
-                    // 서버 터미널 모니터링용 로그 Server terminal log for monitoring
                     console.log(`[CHAT][${roomId}] ${nickname}: ${msg}`);
+
+                    // 정답 확인
+                    const answerResult = await checkAnswer(roomId, socket.id, msg);
+                    if (answerResult?.isCorrect) {
+                        io.to(roomId).emit('correct_answer', {
+                            nickname: answerResult.player.nickname,
+                            point: answerResult.point,
+                            scores: answerResult.scores,
+                        });
+                        if (answerResult.allCorrect) {
+                            await handleRoundEnd(roomId);
+                        }
+                    }
                 }
             } catch (err) {
                 console.error("[CHAT ERROR]", err);
@@ -182,6 +225,30 @@ module.exports = async (server) => {
             }
         });
 
+        // 마지막 stroke 되돌리기 Undo last stroke
+        socket.on('undo_draw', () => {
+            try {
+                const roomId = socket.currentRoom;
+                if (roomId) {
+                    socket.to(roomId).emit('undo_draw');
+                }
+            } catch (err) {
+                console.error("[UNDO DRAW ERROR]", err);
+            }
+        });
+
+        // stroke 지우기 (지우개) Erase strokes by id
+        socket.on('erase_draw', (data) => {
+            try {
+                const roomId = socket.currentRoom;
+                if (roomId && Array.isArray(data?.strokeIds)) {
+                    socket.to(roomId).emit('erase_draw', { strokeIds: data.strokeIds });
+                }
+            } catch (err) {
+                console.error("[ERASE DRAW ERROR]", err);
+            }
+        });
+
         // 연결 종료 핸들링 Disconnection handling
         socket.on('disconnect', async (reason) => {
             try {
@@ -197,18 +264,19 @@ module.exports = async (server) => {
                     const timer = setTimeout(async () => {
                         try {
                             const result = await removeUserFromRoom(pubClient, roomId, socketId);
-                            
+
                             if (result) {
                                 const { users } = result;
 
                                 console.log(`[SYSTEM] Room ${socket.currentRoom} updated. Total: ${users.length}`);
 
-                                io.to(roomId).emit('room_update', { 
-                                    roomId: socket.currentRoom, 
+                                io.to(roomId).emit('room_update', {
+                                    roomId: socket.currentRoom,
                                     users: users
                                 });
+
+                                await handlePlayerLeave(roomId, socketId, users);
                             } else {
-                                // 추가 권장: result가 null이면 마지막 유저가 나가서 방이 삭제된 상태입니다.
                                 console.log(`[SYSTEM] Room ${socket.currentRoom} is now empty and removed from Redis.`);
                             }
                         } catch (err) {
