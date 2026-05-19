@@ -182,6 +182,30 @@ module.exports = async (server) => {
             }
         });
 
+        // 마지막 stroke 되돌리기 Undo last stroke
+        socket.on('undo_draw', () => {
+            try {
+                const roomId = socket.currentRoom;
+                if (roomId) {
+                    socket.to(roomId).emit('undo_draw');
+                }
+            } catch (err) {
+                console.error("[UNDO DRAW ERROR]", err);
+            }
+        });
+
+        // stroke 지우기 (지우개) Erase strokes by id
+        socket.on('erase_draw', (data) => {
+            try {
+                const roomId = socket.currentRoom;
+                if (roomId && Array.isArray(data?.strokeIds)) {
+                    socket.to(roomId).emit('erase_draw', { strokeIds: data.strokeIds });
+                }
+            } catch (err) {
+                console.error("[ERASE DRAW ERROR]", err);
+            }
+        });
+
         // 연결 종료 핸들링 Disconnection handling
         socket.on('disconnect', async (reason) => {
             try {
