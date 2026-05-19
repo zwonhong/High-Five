@@ -19,17 +19,16 @@ function GameScreen() {
   const users = useSocketStore((state) => state.users);
   // 라운드 구분선을 채팅 목록에 추가할 때 사용
   const addChatMessage = useSocketStore((state) => state.addChatMessage);
+  // 서버에서 받은 라운드/타이머 설정
+  const timeLimit = useSocketStore((state) => state.timeLimit);
+  const maxRound = useSocketStore((state) => state.maxRound);
 
-  // timeout 시간(테스트용으로 10초)
-  const TIME_LIMIT = 10;
   // 현재 라운드
   const [currentRound, setCurrentRound] = useState(1);
-  // 최대 라운드
-  const [maxRound, setMaxRound] = useState(3);
   // 라운드 진행 여부
   const [isRoundEnded, setIsRoundEnded] = useState(false);
   // 타이머
-  const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
+  const [timeLeft, setTimeLeft] = useState(timeLimit);
   // 결과 모달
   const [showGameResultModal, setShowGameResultModal] = useState(false);
   // 다음 라운드 모달
@@ -38,37 +37,8 @@ function GameScreen() {
   const [showGameEndModal, setShowGameEndModal] = useState(false);
   // timeout 모달
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
-  // 게임 종료 데이터
-  const [gameEndData, setGameEndData] = useState({
-    finalScores: [
-      {
-        user: "young",
-        score: 2
-      },
-      {
-        user: "min",
-        score: 1
-      }
-    ],
-    ranking: [
-      "young",
-      "min"
-    ],
-    roundResults: [
-      {
-        round: 1,
-        winner: "young"
-      },
-      {
-        round: 2,
-        winner: "min"
-      },
-      {
-        round: 3,
-        winner: "young"
-      }
-    ]
-  });
+  // 게임 종료 데이터 (서버에서 game_end 이벤트로 수신)
+  const [gameEndData, setGameEndData] = useState(null);
 
   // 닉네임 목록 (GameRightPanel용)
   const players = users.map((u) => u.nickname);
@@ -169,7 +139,7 @@ function GameScreen() {
       setShowNextRoundModal(false);
 
       // 타이머 초기화
-      setTimeLeft(TIME_LIMIT);
+      setTimeLeft(timeLimit);
 
       // 렌더 완료 후 타이머 시작
       setTimeout(() => {
@@ -222,7 +192,7 @@ function GameScreen() {
         }
 
         {
-          showGameEndModal && (
+          showGameEndModal && gameEndData && (
 
             <GameEndModal
               gameEndData={gameEndData}
@@ -250,7 +220,6 @@ function GameScreen() {
             right: "20px",
             zIndex: 9999
           }}
-
           onClick={handleAnswerCorrect}
         >
           answer_correct 테스트

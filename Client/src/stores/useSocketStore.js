@@ -12,6 +12,9 @@ export const useSocketStore = create((set) => ({
   errorMessage: '',
   // 현재 그리기 권한 여부
   isDrawer: false,
+  // 라운드 정보 (서버에서 game_start 시 전달)
+  timeLimit: 60,
+  maxRound: 3,
 
   setNickname: (nickname) => set({ nickname }),
   setRoomId: (roomId) => set({ roomId }),
@@ -22,6 +25,8 @@ export const useSocketStore = create((set) => ({
   setErrorMessage: (errorMessage) => set({ errorMessage }),
   clearErrorMessage: () => set({ errorMessage: '' }),
   setIsDrawer: (isDrawer) => set({ isDrawer }),
+  setTimeLimit: (timeLimit) => set({ timeLimit }),
+  setMaxRound: (maxRound) => set({ maxRound }),
 
   addChatMessage: (chatMessage) =>
     set((state) => ({
@@ -39,5 +44,7 @@ export const useSocketStore = create((set) => ({
       hasJoined: false,
       errorMessage: '',
       isDrawer: false,
+      timeLimit: 60,
+      maxRound: 3,
     }),
 }))
