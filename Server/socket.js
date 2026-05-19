@@ -180,7 +180,7 @@ module.exports = async (server) => {
                     });
                     console.log(`[CHAT][${roomId}] ${nickname}: ${msg}`);
 
-                    // 정답 확인
+                    // 정답 확인 → 정답 즉시 라운드 종료
                     const answerResult = await checkAnswer(roomId, socket.id, msg);
                     if (answerResult?.isCorrect) {
                         io.to(roomId).emit('correct_answer', {
@@ -188,9 +188,7 @@ module.exports = async (server) => {
                             point: answerResult.point,
                             scores: answerResult.scores,
                         });
-                        if (answerResult.allCorrect) {
-                            await handleRoundEnd(roomId);
-                        }
+                        await handleRoundEnd(roomId);
                     }
                 }
             } catch (err) {
