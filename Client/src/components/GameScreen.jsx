@@ -11,24 +11,28 @@ import GameNextRoundModal from "./GameNextRoundModal";
 import GameEndModal from "./GameEndModal";
 import GameTimeoutModal from "./GameTimeoutModal";
 import { useSocketStore } from "../stores/useSocketStore";
+import { socketClient } from "../socket/socketClient";
+
+// 라운드당 타이머 (서버와 동일하게 60초 고정)
+const TIME_LIMIT = 60;
 
 function GameScreen() {
 
   const nickname = useSocketStore((state) => state.nickname);
-  // 방 인원 목록 ({ id, nickname }[])
-  const users = useSocketStore((state) => state.users);
   // 라운드 구분선을 채팅 목록에 추가할 때 사용
   const addChatMessage = useSocketStore((state) => state.addChatMessage);
-  // 서버에서 받은 라운드/타이머 설정
-  const timeLimit = useSocketStore((state) => state.timeLimit);
-  const maxRound = useSocketStore((state) => state.maxRound);
+  // 서버에서 받은 라운드 정보
+  const currentRound = useSocketStore((state) => state.currentRound);
+  const totalRounds = useSocketStore((state) => state.totalRounds);
+  // 최근 정답자 정보 (결과 모달 표시용)
+  const correctAnswerInfo = useSocketStore((state) => state.correctAnswerInfo);
+  // 게임 종료 데이터 (game_end 수신 시 갱신)
+  const gameEndData = useSocketStore((state) => state.gameEndData);
 
-  // 현재 라운드
-  const [currentRound, setCurrentRound] = useState(1);
   // 라운드 진행 여부
   const [isRoundEnded, setIsRoundEnded] = useState(false);
   // 타이머
-  const [timeLeft, setTimeLeft] = useState(timeLimit);
+  const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   // 결과 모달
   const [showGameResultModal, setShowGameResultModal] = useState(false);
   // 다음 라운드 모달
@@ -37,11 +41,7 @@ function GameScreen() {
   const [showGameEndModal, setShowGameEndModal] = useState(false);
   // timeout 모달
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
-  // 게임 종료 데이터 (서버에서 game_end 이벤트로 수신)
-  const [gameEndData, setGameEndData] = useState(null);
 
-  // 닉네임 목록 (GameRightPanel용)
-  const players = users.map((u) => u.nickname);
 
   // 타이머
   useEffect(() => {
@@ -51,103 +51,98 @@ function GameScreen() {
       return;
     }
 
-    // timeout
+    // 클라이언트 타임아웃
     if (timeLeft <= 0) {
-
-      console.log("timeout 전송");
-
-      // socket.emit("timeout");
-
-      setShowTimeoutModal(true);
-
       setIsRoundEnded(true);
-
+      setShowTimeoutModal(true);
       return;
     }
 
     const timer = setTimeout(() => {
-
       setTimeLeft((prev) => prev - 1);
-
     }, 1000);
 
     return () => clearTimeout(timer);
 
   }, [timeLeft, isRoundEnded]);
 
-  // answer_correct 수신 테스트
+  // 소켓 이벤트 → UI 상태 제어 (데이터 싱크는 useSocketEvents에서 처리)
+  useEffect(() => {
+
+    // 정답자 발생 → 타이머 정지, 결과 모달 표시
+    const onCorrectAnswer = () => {
+      setIsRoundEnded(true);
+      setShowGameResultModal(true);
+    };
+
+    // 다음 라운드 → 모달 닫고 타이머 초기화
+    const onNextRound = () => {
+      setShowGameResultModal(false);
+      setShowTimeoutModal(false);
+      setShowNextRoundModal(true);
+
+      setTimeout(() => {
+        setShowNextRoundModal(false);
+        setTimeLeft(TIME_LIMIT);
+
+        // 렌더 완료 후 타이머 시작
+        setTimeout(() => {
+          setIsRoundEnded(false);
+        }, 0);
+      }, 1500);
+    };
+
+    // 게임 종료 → 게임 종료 모달 표시
+    const onGameEnd = () => {
+      setIsRoundEnded(true);
+      setShowGameEndModal(true);
+    };
+
+    socketClient.on('correct_answer', onCorrectAnswer);
+    socketClient.on('next_round', onNextRound);
+    socketClient.on('game_end', onGameEnd);
+
+    return () => {
+      socketClient.off('correct_answer', onCorrectAnswer);
+      socketClient.off('next_round', onNextRound);
+      socketClient.off('game_end', onGameEnd);
+    };
+
+  }, []);
+
+  // answer_correct 수신 테스트 (소켓 연결 전 UI 확인용)
   const handleAnswerCorrect = () => {
-    console.log("answer_correct 수신");
-
-    // socket.emit("round_end");
-
-    // 타이머 정지
+    console.log("answer_correct 테스트");
     setIsRoundEnded(true);
-    // 결과 모달 표시
     setShowGameResultModal(true);
   };
 
-  // 다음 라운드
+  // 다음 라운드 테스트 (소켓 연결 전 UI 확인용)
   const handleNextRound = () => {
-    // 결과 모달 닫기
     setShowGameResultModal(false);
-    // timeout 모달 닫기
     setShowTimeoutModal(false);
-    // 마지막 라운드라면
-    if (currentRound >= maxRound) {
-      console.log("모든 라운드 종료");
 
-      /*
-      socket.emit("game_end");
-
-      socket.on("game_end", (data) => {
-        setGameEndData(data);
-        setShowGameEndModal(true);
-      });
-      */
-
-      // 게임 종료 상태 유지
+    if (currentRound >= totalRounds) {
       setIsRoundEnded(true);
       setShowGameEndModal(true);
-
       return;
     }
-
-    // 다음 라운드 번호
-    const nextRound = currentRound + 1;
-
-    setCurrentRound(nextRound);
 
     // 채팅 라운드 구분선 추가
     addChatMessage({
       type: "round",
-      round: nextRound
+      round: currentRound + 1
     });
 
-    // socket.emit("round_start");
-
-    // 라운드 종료 상태 유지
-    setIsRoundEnded(true);
-
-    // 다음 라운드 모달 표시
     setShowNextRoundModal(true);
 
-    // 1.5초 후 다음 라운드 시작
     setTimeout(() => {
-
-      // 모달 닫기
       setShowNextRoundModal(false);
+      setTimeLeft(TIME_LIMIT);
 
-      // 타이머 초기화
-      setTimeLeft(timeLimit);
-
-      // 렌더 완료 후 타이머 시작
       setTimeout(() => {
-
         setIsRoundEnded(false);
-
       }, 0);
-
     }, 1500);
   };
 
@@ -164,7 +159,6 @@ function GameScreen() {
         />
 
         <GameRightPanel
-          players={players}
           timeLeft={timeLeft}
         />
 
@@ -172,9 +166,9 @@ function GameScreen() {
           showGameResultModal && (
 
             <GameResultModal
-              winner={nickname}
+              winner={correctAnswerInfo?.nickname ?? nickname}
               currentRound={currentRound}
-              maxRound={maxRound}
+              maxRound={totalRounds}
               onNextRound={handleNextRound}
             />
 
@@ -206,7 +200,7 @@ function GameScreen() {
 
             <GameTimeoutModal
               currentRound={currentRound}
-              maxRound={maxRound}
+              maxRound={totalRounds}
               onNextRound={handleNextRound}
             />
 

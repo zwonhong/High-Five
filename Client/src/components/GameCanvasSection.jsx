@@ -20,6 +20,8 @@ function GameCanvasSection({
   const canvasRef = useRef(null);
   // 그리기 권한 여부 (game_start의 canDraw로 결정)
   const isDrawer = useSocketStore((state) => state.isDrawer);
+  // 현재 라운드 주제 (출제자에게만 표시)
+  const topic = useSocketStore((state) => state.topic);
   // 현재 그림 그리고 있는지
   const [isDrawing, setIsDrawing] = useState(false);
   // 현재 색상
@@ -288,10 +290,14 @@ function GameCanvasSection({
 
     <div className="canvas-section">
 
-      {/* 주제 */}
+      {/* 주제 (출제자에게만 표시) */}
       <div className="topic-box common-box">
 
-        <strong>주제</strong>
+        {
+          isDrawer && topic
+            ? <strong>주제: {topic}</strong>
+            : <strong>주제: ???</strong>
+        }
 
       </div>
 
