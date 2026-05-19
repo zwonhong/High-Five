@@ -4,8 +4,26 @@
 const { createClient } = require('redis');
 const { getRandomTopic } = require('./topics');
 
-const client = createClient({ url: 'redis://redis-db:6379' });
-client.connect().catch(console.error);
+// ─────────────────────────────────────────
+// Redis 연결 (require 시점이 아닌 함수 호출 시점에 연결)
+// 6번: Redis 없으면 서버 접속 실패 방지
+// ─────────────────────────────────────────
+let client = null;
+
+const getRedisClient = async () => {
+    if (!client) {
+        client = createClient({ url: 'redis://redis-db:6379' });
+
+        client.on('error', (err) => {
+            console.error('[REDIS] Client error:', err);
+            client = null; // 에러 시 재연결 허용
+        });
+
+        await client.connect();
+        console.log('[REDIS] gameManager connected');
+    }
+    return client;
+};
 
 // ─────────────────────────────────────────
 // 게임 상수 Game Constants
@@ -13,7 +31,7 @@ client.connect().catch(console.error);
 const GAME_PHASE = Object.freeze({
     WAITING: 'waiting',   // 대기 중
     DRAWING: 'drawing',   // 출제자가 그림 그리는 중
-    RESULT: 'result',     // 라운드 결과 공개
+    // 8번: RESULT 제거 (사용되지 않음)
     END: 'end',           // 게임 종료
 });
 
@@ -25,35 +43,42 @@ const TIMER_DURATION = 60;  // 라운드당 60초
 // ─────────────────────────────────────────
 
 const getGameState = async (roomId) => {
-    const data = await client.get(`game_${roomId}`);
+    const redis = await getRedisClient();
+    const data = await redis.get(`game_${roomId}`);
     return data ? JSON.parse(data) : null;
 };
 
 const setGameState = async (roomId, state) => {
-    await client.set(`game_${roomId}`, JSON.stringify(state));
+    const redis = await getRedisClient();
+    await redis.set(`game_${roomId}`, JSON.stringify(state));
 };
 
 const deleteGameState = async (roomId) => {
-    await client.del(`game_${roomId}`);
+    const redis = await getRedisClient();
+    await redis.del(`game_${roomId}`);
 };
 
 // ─────────────────────────────────────────
-// 게임 시작 Game Start
+// 게임 시작 + 첫 주제 배정 Game Start
+// 9번: startGame과 assignTopic 합치기
 // ─────────────────────────────────────────
 
 /**
- * 게임 시작 초기화
+ * 게임 시작 초기화 + 첫 라운드 주제 자동 배정
  * @param {string} roomId - 방 ID
  * @param {Array} users - 플레이어 목록 [{ id, nickname }] (입장 순서대로)
- * @returns {object} 첫 라운드 정보
+ * @returns {object} 첫 라운드 정보 + 주제
  *
  * [C → D 호출 시점]
  * socket.js에서 5명 다 찼을 때 (isStarted === true)
  *
  * [D → FE emit 이벤트]
- * game_started: { roomId, totalRounds, currentRound, drawer }
+ * game_started: { roomId, totalRounds, currentRound, drawer, topic }
  */
 const startGame = async (roomId, users) => {
+    // 첫 주제 미리 뽑기
+    const firstTopic = getRandomTopic([]);
+
     const gameState = {
         roomId,
         phase: GAME_PHASE.DRAWING,
@@ -62,8 +87,9 @@ const startGame = async (roomId, users) => {
         currentRound: 1,
         currentDrawerIndex: 0,      // 첫 번째 입장한 사람이 첫 출제자
         scores: {},
-        currentTopic: '',
-        correctPlayers: [],         // 현재 라운드에서 맞춘 플레이어 목록
+        currentTopic: firstTopic,
+        correctPlayers: [],
+        usedTopics: [firstTopic],   // 사용한 주제 목록
     };
 
     // 점수 초기화
@@ -74,58 +100,20 @@ const startGame = async (roomId, users) => {
     await setGameState(roomId, gameState);
 
     const drawer = users[0];
-    console.log(`[GAME] Game started in room ${roomId} | first drawer: ${drawer.nickname}`);
+    console.log(`[GAME] Game started in room ${roomId} | first drawer: ${drawer.nickname} | topic: ${firstTopic}`);
 
     return {
         roomId,
         totalRounds: MAX_ROUNDS,
         currentRound: 1,
         drawer,
-    };
-};
-
-// ─────────────────────────────────────────
-// 주제 설정 Set Topic
-// ─────────────────────────────────────────
-
-/**
- * 라운드 시작 시 랜덤 주제 자동 배정
- * @param {string} roomId
- * @returns {object} 주제 설정 결과
- *
- * [C → D 호출 시점]
- * socket.js에서 round_start 직전에 호출
- *
- * [D → FE emit 이벤트]
- * round_start: { currentRound, totalRounds, drawer, topic } → 출제자에게만 topic 전달
- */
-const assignTopic = async (roomId) => {
-    const gameState = await getGameState(roomId);
-    if (!gameState) return null;
-
-    const drawer = gameState.players[gameState.currentDrawerIndex];
-
-    // 이미 사용한 주제 목록에서 중복 제외하고 랜덤 뽑기
-    const usedTopics = gameState.usedTopics || [];
-    const topic = getRandomTopic(usedTopics);
-
-    gameState.currentTopic = topic;
-    gameState.correctPlayers = [];
-    gameState.usedTopics = [...usedTopics, topic];
-    await setGameState(roomId, gameState);
-
-    console.log(`[GAME] [Room ${roomId}] Round ${gameState.currentRound} topic: ${topic} | drawer: ${drawer.nickname}`);
-
-    return {
-        topic,
-        currentRound: gameState.currentRound,
-        totalRounds: gameState.totalRounds,
-        drawer,
+        topic: firstTopic,  // 출제자에게만 전달
     };
 };
 
 // ─────────────────────────────────────────
 // 정답 확인 Check Answer
+// 10번: 정답 판정 더 널널하게
 // ─────────────────────────────────────────
 
 /**
@@ -139,7 +127,7 @@ const assignTopic = async (roomId) => {
  * socket.js에서 send_chat 이벤트 받았을 때 같이 호출
  *
  * [D → FE emit 이벤트]
- * correct_answer: { nickname, scores } → 정답일 때 전체에게
+ * correct_answer: { nickname, point, scores } → 정답일 때 전체에게
  */
 const checkAnswer = async (roomId, playerId, message) => {
     const gameState = await getGameState(roomId);
@@ -155,18 +143,18 @@ const checkAnswer = async (roomId, playerId, message) => {
     // 이미 맞춘 플레이어 무시
     if (gameState.correctPlayers.includes(playerId)) return null;
 
-    // 정답 확인 (대소문자, 공백 무시)
-    const isCorrect = message.trim().toLowerCase() === gameState.currentTopic.trim().toLowerCase();
+    // 10번: 정답 판정 널널하게 (대소문자, 앞뒤공백, 특수문자 무시)
+    const normalize = (str) => str.trim().toLowerCase().replace(/[^a-z0-9가-힣]/g, '');
+    const isCorrect = normalize(message) === normalize(gameState.currentTopic);
     if (!isCorrect) return { isCorrect: false };
 
     const player = gameState.players.find(p => p.id === playerId);
     gameState.correctPlayers.push(playerId);
 
-    // 점수: 1등 3점, 2등 2점, 나머지 1점 / 출제자는 맞춘 사람당 1점
+    // 점수: 1등 3점, 2등 2점, 나머지 1점
     const correctCount = gameState.correctPlayers.length;
     const point = correctCount === 1 ? 3 : correctCount === 2 ? 2 : 1;
     gameState.scores[playerId] = (gameState.scores[playerId] || 0) + point;
-    gameState.scores[drawer.id] = (gameState.scores[drawer.id] || 0) + 1;
 
     console.log(`[GAME] [Room ${roomId}] ${player.nickname} correct! (+${point}pts)`);
 
@@ -186,6 +174,7 @@ const checkAnswer = async (roomId, playerId, message) => {
 
 // ─────────────────────────────────────────
 // 라운드 종료 End Round
+// 11번: 플레이어 매핑 명확하게
 // ─────────────────────────────────────────
 
 /**
@@ -198,7 +187,7 @@ const checkAnswer = async (roomId, playerId, message) => {
  *
  * [D → FE emit 이벤트]
  * round_end: { topic, correctPlayers, scores, currentRound }
- * next_round: { currentRound, totalRounds, drawer }
+ * next_round: { currentRound, totalRounds, drawer, topic }
  * game_end: { scores, winner }
  */
 const endRound = async (roomId) => {
@@ -207,11 +196,17 @@ const endRound = async (roomId) => {
 
     const { currentRound, totalRounds, players, currentDrawerIndex, correctPlayers, scores, currentTopic } = gameState;
 
+    // 11번: correctPlayers socketId → nickname으로 매핑해서 전달
+    const correctPlayerNames = correctPlayers.map(id => {
+        const p = players.find(p => p.id === id);
+        return p ? p.nickname : id;
+    });
+
     console.log(`[GAME] [Room ${roomId}] Round ${currentRound} ended | correct: ${correctPlayers.length}명`);
 
     const roundResult = {
         topic: currentTopic,
-        correctPlayers,
+        correctPlayers: correctPlayerNames,
         scores,
         currentRound,
     };
@@ -231,18 +226,22 @@ const endRound = async (roomId) => {
             winner,
         };
     } else {
-        // 다음 라운드
+        // 다음 라운드 주제 뽑기
+        const usedTopics = gameState.usedTopics || [];
+        const nextTopic = getRandomTopic(usedTopics);
+
         const nextDrawerIndex = (currentDrawerIndex + 1) % players.length;
         gameState.currentRound = currentRound + 1;
         gameState.currentDrawerIndex = nextDrawerIndex;
-        gameState.currentTopic = '';
+        gameState.currentTopic = nextTopic;
         gameState.correctPlayers = [];
+        gameState.usedTopics = [...usedTopics, nextTopic];
         gameState.phase = GAME_PHASE.DRAWING;
 
         await setGameState(roomId, gameState);
 
         const nextDrawer = players[nextDrawerIndex];
-        console.log(`[GAME] [Room ${roomId}] Round ${gameState.currentRound} | drawer: ${nextDrawer.nickname}`);
+        console.log(`[GAME] [Room ${roomId}] Round ${gameState.currentRound} | drawer: ${nextDrawer.nickname} | topic: ${nextTopic}`);
 
         return {
             isGameOver: false,
@@ -251,6 +250,7 @@ const endRound = async (roomId) => {
                 currentRound: gameState.currentRound,
                 totalRounds,
                 drawer: nextDrawer,
+                topic: nextTopic,   // 출제자에게만 전달
             },
         };
     }
@@ -276,6 +276,7 @@ const getWinner = (players, scores) => {
 
 // ─────────────────────────────────────────
 // 타이머 Timer
+// 7번: 타이머는 프로세스 메모리에 저장 (Redis 공유 안됨 - C와 협의 필요)
 // ─────────────────────────────────────────
 const timers = {};
 
@@ -353,7 +354,6 @@ module.exports = {
     GAME_PHASE,
     TIMER_DURATION,
     startGame,
-    assignTopic,
     checkAnswer,
     endRound,
     startTimer,
