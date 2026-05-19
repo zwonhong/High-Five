@@ -50,18 +50,35 @@ function GameCanvasSection({
   // 다른 사람 stroke 수신
   useEffect(() => {
 
-    socketClient.on('receive_draw', (stroke) => {
+    const onReceiveDraw = (stroke) => {
       setStrokes((prev) => [...prev, stroke]);
-    });
+    };
 
     // clear_canvas는 서버가 모든 유저에게 브로드캐스트하므로 나 포함 모두 초기화
-    socketClient.on('clear_canvas', () => {
+    const onClearCanvas = () => {
       clearCanvasLocally();
-    });
+    };
+
+    // 다른 사람이 undo → 나도 마지막 stroke 제거
+    const onUndoDraw = () => {
+      setStrokes((prev) => prev.slice(0, -1));
+    };
+
+    // 다른 사람이 지우개로 지운 stroke → 나도 동일하게 제거
+    const onEraseDraw = ({ strokeIds }) => {
+      setStrokes((prev) => prev.filter((s) => !strokeIds.includes(s.id)));
+    };
+
+    socketClient.on('receive_draw', onReceiveDraw);
+    socketClient.on('clear_canvas', onClearCanvas);
+    socketClient.on('undo_draw', onUndoDraw);
+    socketClient.on('erase_draw', onEraseDraw);
 
     return () => {
-      socketClient.off('receive_draw');
-      socketClient.off('clear_canvas');
+      socketClient.off('receive_draw', onReceiveDraw);
+      socketClient.off('clear_canvas', onClearCanvas);
+      socketClient.off('undo_draw', onUndoDraw);
+      socketClient.off('erase_draw', onEraseDraw);
     };
 
   }, []);
@@ -238,7 +255,6 @@ function GameCanvasSection({
     ctx.stroke();
   };
 
-  // undo (서버에 해당 이벤트 없어 로컬 전용)
   const handleUndo = () => {
 
     if (!isDrawer) {
@@ -246,28 +262,26 @@ function GameCanvasSection({
     }
 
     setStrokes((prev) => prev.slice(0, -1));
+    socketClient.emit('undo_draw');
   };
 
-  // 특정 stroke 지우기 (서버에 해당 이벤트 없어 로컬 전용)
   const eraseStroke = (clickPos) => {
 
     const CLICK_RANGE = 10;
 
-    const filtered = strokes.filter((stroke) => {
-
-      const hit = stroke.points.some((point) => {
-
+    const toErase = strokes.filter((stroke) =>
+      stroke.points.some((point) => {
         const dx = point.x - clickPos.x;
-
         const dy = point.y - clickPos.y;
-
         return Math.sqrt(dx * dx + dy * dy) < CLICK_RANGE;
-      });
+      })
+    );
 
-      return !hit;
-    });
+    if (toErase.length === 0) return;
 
-    setStrokes(filtered);
+    const strokeIds = toErase.map((s) => s.id);
+    setStrokes((prev) => prev.filter((s) => !strokeIds.includes(s.id)));
+    socketClient.emit('erase_draw', { strokeIds });
   };
 
   // 전체 초기화 (clear_canvas 수신 시 호출)
