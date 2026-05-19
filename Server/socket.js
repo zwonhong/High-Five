@@ -12,7 +12,7 @@ const reconnectionTimers = new Map(); // socketId -> setTimeout 객체
 // 모듈로 서버를 내보내기 Export server as module
 module.exports = async (server) => {
     const io = new Server(server, {
-        pingTimeout: 5000,
+        pingTimeout: 30000,
         pingInterval: 10000,
         cors: { origin: true, methods: ["GET", "POST"] }
     });
