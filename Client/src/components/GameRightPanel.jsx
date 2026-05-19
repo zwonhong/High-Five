@@ -1,7 +1,12 @@
-function GameRightPanel({
-  players,
-  timeLeft
-}) {
+import { useSocketStore } from "../stores/useSocketStore";
+
+function GameRightPanel({ timeLeft }) {
+
+  const users = useSocketStore((state) => state.users);
+  // 플레이어별 점수 { socketId: score }
+  const scores = useSocketStore((state) => state.scores);
+  // 현재 출제자 { id, nickname }
+  const drawer = useSocketStore((state) => state.drawer);
 
   return (
 
@@ -11,14 +16,21 @@ function GameRightPanel({
       <div className="user-list">
 
         {
-          players.map((player, index) => (
+          users.map((user) => (
 
             <div
-              key={index}
+              key={user.id}
               className="user-box common-box"
             >
 
-              {player}
+              {/* 출제자 표시 */}
+              {drawer?.id === user.id && <span>✏️ </span>}
+
+              {user.nickname}
+
+              <span style={{ marginLeft: "auto", fontSize: "0.85em" }}>
+                {scores[user.id] ?? 0}점
+              </span>
 
             </div>
 

@@ -21,3 +21,7 @@ export function sendChatMessage(message) {
   socketClient.emit('send_chat', trimmedMessage)
   return true
 }
+
+export function tryReconnect(roomId, oldSocketId, nickname) {
+  socketClient.emit('try_reconnect', { roomId, oldSocketId, nickname })
+}
