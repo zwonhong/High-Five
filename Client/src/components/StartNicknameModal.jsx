@@ -26,7 +26,7 @@ function StartNicknameModal({
       className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
       style={{
         backgroundColor: "rgba(0,0,0,0.3)",
-        zIndex: 1000
+        zIndex: 3000
       }}
     >
 
@@ -34,7 +34,7 @@ function StartNicknameModal({
       <div
         className="bg-white border border-dark d-flex flex-column justify-content-center align-items-center"
         style={{
-          width: "500px",
+          width: "450px",
           height: "300px",
           borderRadius: "40px"
         }}
