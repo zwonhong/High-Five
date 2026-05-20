@@ -101,9 +101,11 @@ function GameScreen() {
       }, 1500);
     };
 
-    // 게임 종료 → 게임 종료 모달 표시
+    // 게임 종료 → 다른 모달 닫고 게임 종료 모달 표시
     const onGameEnd = () => {
       setIsRoundEnded(true);
+      setShowGameResultModal(false);
+      setShowTimeoutModal(false);
       setShowGameEndModal(true);
     };
 
