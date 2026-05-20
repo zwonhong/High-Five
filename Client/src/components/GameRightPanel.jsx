@@ -21,12 +21,16 @@ function GameRightPanel({ timeLeft }) {
             <div
               key={user.id}
               className="user-box common-box"
+              style={user.isDisconnected ? { opacity: 0.45 } : undefined}
             >
 
               {/* 출제자 표시 */}
               {drawer?.id === user.id && <span>✏️ </span>}
 
               {user.nickname}
+              {user.isDisconnected && (
+                <span style={{ marginLeft: "4px", fontSize: "0.75em" }}>(끊김)</span>
+              )}
 
               <span style={{ marginLeft: "auto", fontSize: "0.85em" }}>
                 {scores[user.id] ?? 0}점

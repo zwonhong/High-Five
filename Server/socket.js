@@ -5,7 +5,7 @@ const { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, r
 // errorHandling
 const { redisConfig, handleRedisError, emitError } = require('./errorHandler');
 const { cleanupGhostUsers } = require('./sessionCleaner');
-const { startGame, assignTopic, checkAnswer, endRound, deleteGameState, TIMER_DURATION } = require('./gameManager');
+const { startGame, assignTopic, checkAnswer, endRound, deleteGameState, markPlayerInactive, removePlayerFromGame, reactivatePlayer, TIMER_DURATION } = require('./gameManager');
 
 const reconnectionTimers = new Map(); // socketId -> setTimeout 객체
 const roundTimers = new Map(); // roomId → 라운드 타이머 (오케스트레이션 단순화 전까지 socket 측 보관)
@@ -85,6 +85,17 @@ module.exports = async (server) => {
         }
     };
 
+    const refreshRoundAfterDrawerChange = async (roomId) => {
+        clearTimer(roomId);
+        const topicData = await assignTopic(pubClient, roomId);
+        if (!topicData) return;
+
+        const { topic, currentRound, totalRounds, drawer } = topicData;
+        io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
+        io.to(drawer.id).emit('round_start', { currentRound, totalRounds, drawer, topic });
+        startTimer(roomId, handleRoundEnd);
+    };
+
     // 라운드 종료 처리 (타이머 만료 or 모두 정답)
     const handleRoundEnd = async (roomId) => {
         clearTimer(roomId);
@@ -127,6 +138,8 @@ module.exports = async (server) => {
                     socket.join(roomId);
                     socket.currentRoom = roomId;
                     socket.nickname = nickname;
+
+                    await reactivatePlayer(pubClient, roomId, oldSocketId, socket.id);
 
                     // 3. 본인 및 방 인원들에게 복구 알림
                     socket.emit('reconnect_success', { roomId, users: room.users });
@@ -285,7 +298,16 @@ module.exports = async (server) => {
                     const nickname = socket.nickname;
 
                     // 즉시 지우지 않고 '비활성화' 처리 Mark as inactive instead of immediate removal
-                    await markUserInactive(pubClient, roomId, socketId);
+                    const room = await markUserInactive(pubClient, roomId, socketId);
+                    if (room) {
+                        io.to(roomId).emit('room_update', { roomId, users: room.users });
+                    }
+
+                    const { needsRoundRefresh } = await markPlayerInactive(pubClient, roomId, socketId);
+                    if (needsRoundRefresh) {
+                        await refreshRoundAfterDrawerChange(roomId);
+                    }
+
                     console.log(`[SYSTEM] User marked as inactive: ${socket.nickname} (${reason}) from room ${socket.currentRoom}. Waiting for 10 seconds before final removal.`);
                     
                     const timer = setTimeout(async () => {
@@ -296,6 +318,11 @@ module.exports = async (server) => {
                                 const { users } = result;
 
                                 console.log(`[SYSTEM] Room ${socket.currentRoom} updated. Total: ${users.length}`);
+
+                                const { needsRoundRefresh: needsRefresh } = await removePlayerFromGame(pubClient, roomId, socketId);
+                                if (needsRefresh) {
+                                    await refreshRoundAfterDrawerChange(roomId);
+                                }
 
                                 io.to(roomId).emit('room_update', {
                                     roomId: socket.currentRoom,
