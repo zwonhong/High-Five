@@ -63,13 +63,11 @@ function GameLeftPanel({
       const messageId = Date.now();
 
       const answerMessage = {
-
         id: messageId,
         user: nickname,
         text: chatInput,
         type: "answer",
         isWrong: false
-
       };
 
       /*
@@ -88,7 +86,7 @@ function GameLeftPanel({
 
       ]);
 
-      // ===== 임시 wrong_answer 테스트 =====
+      // 임시 wrong_answer 테스트
       // 1초 후 틀린 답 처리
 
       setTimeout(() => {
@@ -120,6 +118,26 @@ function GameLeftPanel({
     setChatInput("");
   };
 
+  /* 
+  socket.on("wrong_message", ({ messageId }) => {
+
+  setMessages((prev) =>
+
+    prev.map((msg) =>
+
+      msg.id === messageId
+        ? {
+            ...msg,
+            isWrong: true
+          }
+        : msg
+
+    )
+
+  );
+
+}); 
+*/
   const handleKeyDown = (e) => {
 
     // 한글 입력 채팅 error처리용
