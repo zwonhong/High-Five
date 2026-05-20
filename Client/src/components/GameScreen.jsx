@@ -118,13 +118,6 @@ function GameScreen() {
 
   }, []);
 
-  // answer_correct 수신 테스트 (소켓 연결 전 UI 확인용)
-  const handleAnswerCorrect = () => {
-    console.log("answer_correct 테스트");
-    setIsRoundEnded(true);
-    setShowGameResultModal(true);
-  };
-
   const handleNextRound = () => {
     setShowGameResultModal(false);
     setShowTimeoutModal(false);
@@ -213,18 +206,6 @@ function GameScreen() {
 
           )
         }
-
-        <button
-          style={{
-            position: "absolute",
-            top: "20px",
-            right: "20px",
-            zIndex: 9999
-          }}
-          onClick={handleAnswerCorrect}
-        >
-          answer_correct 테스트
-        </button>
 
       </div>
 
