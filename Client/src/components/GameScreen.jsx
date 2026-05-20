@@ -69,11 +69,6 @@ function GameScreen() {
   // 소켓 이벤트 → UI 상태 제어 (데이터 싱크는 useSocketEvents에서 처리)
   useEffect(() => {
 
-    // 정답자 발생 → 알림만 (모달은 round_end에서 처리)
-    const onCorrectAnswer = () => {
-      // useSocketEvents에서 correctAnswerInfo 업데이트
-    };
-
     // 라운드 종료 → 타이머 정지, 정답자 유무에 따라 모달 분기
     const onRoundEnd = (data) => {
       setIsRoundEnded(true);
@@ -109,13 +104,11 @@ function GameScreen() {
       setShowGameEndModal(true);
     };
 
-    socketClient.on('correct_answer', onCorrectAnswer);
     socketClient.on('round_end', onRoundEnd);
     socketClient.on('next_round', onNextRound);
     socketClient.on('game_end', onGameEnd);
 
     return () => {
-      socketClient.off('correct_answer', onCorrectAnswer);
       socketClient.off('round_end', onRoundEnd);
       socketClient.off('next_round', onNextRound);
       socketClient.off('game_end', onGameEnd);
@@ -130,7 +123,6 @@ function GameScreen() {
     setShowGameResultModal(true);
   };
 
-  // 다음 라운드 테스트 (소켓 연결 전 UI 확인용)
   const handleNextRound = () => {
     setShowGameResultModal(false);
     setShowTimeoutModal(false);
