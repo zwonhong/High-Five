@@ -67,6 +67,7 @@ const startGame = async (client, roomId, users) => {
         currentTopic: '',
         currentWinner: null,
         usedTopics: [],
+        currentStrokes: [],     // 이슈 8: 라운드별 스트로크 저장
     };
 
     users.forEach((user) => {
@@ -133,6 +134,7 @@ const assignTopic = async (client, roomId) => {
  * @param {string} roomId
  * @param {string} playerId
  * @param {string} message
+ * @param {boolean} inAnswer - 정답 버튼을 누르고 보낸 채팅인지 여부
  * @returns {object} { isCorrect, player, point, scores, allCorrect }
  */
 const checkAnswer = async (client, roomId, playerId, message, inAnswer = false) => {
@@ -173,6 +175,39 @@ const checkAnswer = async (client, roomId, playerId, message, inAnswer = false) 
         scores: gameState.scores,
         allCorrect: true,   // 1명 정답 시 즉시 라운드 종료
     };
+};
+
+// ─────────────────────────────────────────
+// 스트로크 저장/조회 Stroke Management
+// 이슈 8: 재연결 시 캔버스 복구용
+// ─────────────────────────────────────────
+
+/**
+ * 스트로크 데이터 저장
+ * @param {object} client - Redis client
+ * @param {string} roomId
+ * @param {object} strokeData - 스트로크 데이터
+ */
+const addStroke = async (client, roomId, strokeData) => {
+    const gameState = await getGameState(client, roomId);
+    if (!gameState) return;
+
+    if (!gameState.currentStrokes) gameState.currentStrokes = [];
+    gameState.currentStrokes.push(strokeData);
+
+    await setGameState(client, roomId, gameState);
+};
+
+/**
+ * 현재 라운드 스트로크 전체 조회
+ * @param {object} client - Redis client
+ * @param {string} roomId
+ * @returns {Array} 스트로크 배열
+ */
+const getStrokes = async (client, roomId) => {
+    const gameState = await getGameState(client, roomId);
+    if (!gameState) return [];
+    return gameState.currentStrokes || [];
 };
 
 // ─────────────────────────────────────────
@@ -239,6 +274,7 @@ const endRound = async (client, roomId) => {
     }
     gameState.currentTopic = '';
     gameState.currentWinner = null;
+    gameState.currentStrokes = [];  // 이슈 8: 라운드 넘어갈 때 스트로크 초기화
     gameState.phase = GAME_PHASE.DRAWING;
 
     await setGameState(client, roomId, gameState);
@@ -356,4 +392,6 @@ module.exports = {
     markPlayerInactive,
     removePlayerFromGame,
     reactivatePlayer,
+    addStroke,
+    getStrokes,
 };
