@@ -5,7 +5,23 @@ const { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, r
 // errorHandling
 const { redisConfig, handleRedisError, emitError } = require('./errorHandler');
 const { cleanupGhostUsers, cleanupRoomGhosts } = require('./sessionCleaner');
-const { startGame, assignTopic, checkAnswer, endRound, deleteGameState, markPlayerInactive, removePlayerFromGame, reactivatePlayer, TIMER_DURATION } = require('./gameManager');
+const {
+    startGame,
+    assignTopic,
+    checkAnswer,
+    endRound,
+    deleteGameState,
+    markPlayerInactive,
+    removePlayerFromGame,
+    reactivatePlayer,
+    addStroke,
+    clearCurrentStrokes,
+    popLastStroke,
+    removeStrokesByIds,
+    addChatLog,
+    getReconnectSnapshot,
+    TIMER_DURATION,
+} = require('./gameManager');
 
 const reconnectionTimers = new Map(); // socketId -> setTimeout 객체
 const roundTimers = new Map(); // roomId → 라운드 타이머 (오케스트레이션 단순화 전까지 socket 측 보관)
@@ -195,8 +211,10 @@ module.exports = async (server) => {
 
                     await reactivatePlayer(pubClient, roomId, oldSocketId, socket.id);
 
+                    const gameSnapshot = await getReconnectSnapshot(pubClient, roomId, socket.id);
+
                     // 3. 본인 및 방 인원들에게 복구 알림
-                    socket.emit('reconnect_success', { roomId, users: room.users });
+                    socket.emit('reconnect_success', { roomId, users: room.users, ...gameSnapshot });
                     emitRoomUpdate(roomId, room.users);
                     console.log(`[RECONNECT] ${nickname} returned to ${roomId}`);
                 }
@@ -271,11 +289,13 @@ module.exports = async (server) => {
                 socket.lastChatTime = now;
 
                 if (roomId && message.trim()) {
-                    io.to(roomId).emit('receive_chat', {
+                    const chatEntry = {
                         sender: nickname,
                         message,
                         timestamp: now
-                    });
+                    };
+                    await addChatLog(pubClient, roomId, chatEntry);
+                    io.to(roomId).emit('receive_chat', chatEntry);
                     console.log(`[CHAT][${roomId}] ${nickname}: ${message}`);
 
                     // 정답 확인 → 정답 즉시 라운드 종료
@@ -295,12 +315,11 @@ module.exports = async (server) => {
         });
 
         // 드로잉 로직 Drawing logic
-        socket.on('draw_data', (data) => {
+        socket.on('draw_data', async (data) => {
             try {
                 const roomId = socket.currentRoom;
                 if (roomId) {
-                    // socket.to(roomId)는 나를 제외한 해당 방의 모든 유저에게 전송 socket.to(roomId) sends to all users in the room except myself
-                    // 내가 그린 건 이미 내 화면에 그려졌으니 중복 방지 to avoid duplication since my drawing is already on my canvas
+                    await addStroke(pubClient, roomId, data);
                     socket.to(roomId).emit('receive_draw', data);
                 }
             } catch (err) {
@@ -309,11 +328,11 @@ module.exports = async (server) => {
         });
 
         // 캔버스 지우기 로직 Canvas clear logic 
-        socket.on('clear_canvas', () => {
+        socket.on('clear_canvas', async () => {
             try {
                 const roomId = socket.currentRoom;
                 if (roomId) {
-                    // 지우기는 모든 유저(나 포함)의 화면을 동시에 지움 Clear everyone's canvas at the same time, including mine
+                    await clearCurrentStrokes(pubClient, roomId);
                     io.to(roomId).emit('clear_canvas');
                 }
             } catch (err) {
@@ -322,10 +341,11 @@ module.exports = async (server) => {
         });
 
         // 마지막 stroke 되돌리기 Undo last stroke
-        socket.on('undo_draw', () => {
+        socket.on('undo_draw', async () => {
             try {
                 const roomId = socket.currentRoom;
                 if (roomId) {
+                    await popLastStroke(pubClient, roomId);
                     socket.to(roomId).emit('undo_draw');
                 }
             } catch (err) {
@@ -334,10 +354,11 @@ module.exports = async (server) => {
         });
 
         // stroke 지우기 (지우개) Erase strokes by id
-        socket.on('erase_draw', (data) => {
+        socket.on('erase_draw', async (data) => {
             try {
                 const roomId = socket.currentRoom;
                 if (roomId && Array.isArray(data?.strokeIds)) {
+                    await removeStrokesByIds(pubClient, roomId, data.strokeIds);
                     socket.to(roomId).emit('erase_draw', { strokeIds: data.strokeIds });
                 }
             } catch (err) {

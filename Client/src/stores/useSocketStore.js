@@ -27,6 +27,8 @@ export const useSocketStore = create((set) => ({
   gameEndData: null,
   // 최근 정답자 정보 { nickname, point }
   correctAnswerInfo: null,
+  // 재연결 직후 캔버스 복구 (GameCanvasSection 마운트 전에도 적용)
+  pendingCanvasStrokes: null,
 
   setNickname: (nickname) => set({ nickname }),
   setRoomId: (roomId) => set({ roomId }),
@@ -51,6 +53,10 @@ export const useSocketStore = create((set) => ({
       chatList: [...state.chatList, chatMessage],
     })),
 
+  setChatList: (chatList) => set({ chatList }),
+
+  setPendingCanvasStrokes: (pendingCanvasStrokes) => set({ pendingCanvasStrokes }),
+
   resetSocketState: () =>
     set({
       nickname: '',
@@ -70,5 +76,6 @@ export const useSocketStore = create((set) => ({
       gamePlayers: [],
       gameEndData: null,
       correctAnswerInfo: null,
+      pendingCanvasStrokes: null,
     }),
 }))

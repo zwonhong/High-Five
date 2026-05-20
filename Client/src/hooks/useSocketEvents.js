@@ -40,6 +40,8 @@ export function useSocketEvents() {
   const setGamePlayers = useSocketStore((state) => state.setGamePlayers)
   const setGameEndData = useSocketStore((state) => state.setGameEndData)
   const setCorrectAnswerInfo = useSocketStore((state) => state.setCorrectAnswerInfo)
+  const setChatList = useSocketStore((state) => state.setChatList)
+  const setPendingCanvasStrokes = useSocketStore((state) => state.setPendingCanvasStrokes)
 
   const goToPlaying = useGamePhaseStore((state) => state.goToPlaying)
   const goToWaiting = useGamePhaseStore((state) => state.goToWaiting)
@@ -160,7 +162,7 @@ export function useSocketEvents() {
       clearSession()
     })
 
-    // 재연결 성공 — 세션 복원
+    // 재연결 성공 — 세션·게임 UI·캔버스·채팅 복원
     socketClient.on('reconnect_success', (data) => {
       console.log('reconnect_success 수신', data)
 
@@ -172,14 +174,25 @@ export function useSocketEvents() {
       setHasJoined(true)
       setNickname(session.nickname)
 
-      // 이전 게임 단계로 복귀
       if (session.gamePhase === GAME_PHASE.PLAYING) {
+        if (Array.isArray(data.strokes)) {
+          setPendingCanvasStrokes(data.strokes)
+        }
+        if (Array.isArray(data.chatLog)) {
+          setChatList(data.chatLog)
+        }
+        if (data.currentRound) setCurrentRound(data.currentRound)
+        if (data.totalRounds) setTotalRounds(data.totalRounds)
+        if (data.drawer) setDrawer(data.drawer)
+        setIsDrawer(data.drawer ? data.drawer.id === socketClient.id : Boolean(data.canDraw))
+        if (data.topic) setTopic(data.topic)
+        else setTopic('')
+        if (data.scores) setScores(data.scores)
         goToPlaying()
       } else {
         goToWaiting()
       }
 
-      // 세션의 socketId 갱신
       saveSession(data.roomId, session.nickname, socketClient.id, session.gamePhase)
     })
 
@@ -213,5 +226,5 @@ export function useSocketEvents() {
       socketClient.off('reconnect_fail')
       socketClient.off('error_message')
     }
-  }, [nickname, setNickname, setRoomId, setUsers, addChatMessage, setIsConnected, setHasJoined, setErrorMessage, setIsDrawer, setDrawer, setTopic, setCurrentRound, setTotalRounds, setScores, setGamePlayers, setGameEndData, setCorrectAnswerInfo, goToPlaying, goToWaiting, goToStart])
+  }, [nickname, setNickname, setRoomId, setUsers, addChatMessage, setChatList, setPendingCanvasStrokes, setIsConnected, setHasJoined, setErrorMessage, setIsDrawer, setDrawer, setTopic, setCurrentRound, setTotalRounds, setScores, setGamePlayers, setGameEndData, setCorrectAnswerInfo, goToPlaying, goToWaiting, goToStart])
 }
