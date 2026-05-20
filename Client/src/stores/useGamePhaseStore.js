@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { socketClient } from '../socket/socketClient'
+import { useSocketStore } from './useSocketStore'
 
 export const GAME_PHASE = Object.freeze({
   START: 'start',
@@ -46,6 +48,8 @@ export const useGamePhaseStore = create((set, get) => ({
   },
 
   goToStart: () => {
+    socketClient.disconnect()
+    useSocketStore.getState().resetSocketState()
     get().setGamePhase(GAME_PHASE.START)
   },
 

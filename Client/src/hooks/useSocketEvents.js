@@ -141,6 +141,7 @@ export function useSocketEvents() {
     socketClient.on('game_end', (data) => {
       console.log('game_end 수신', data)
       setGameEndData(data)
+      clearSession()
     })
 
     // 재연결 성공 — 세션 복원

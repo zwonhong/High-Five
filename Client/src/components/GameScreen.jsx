@@ -19,8 +19,6 @@ const TIME_LIMIT = 60;
 function GameScreen() {
 
   const nickname = useSocketStore((state) => state.nickname);
-  // 라운드 구분선을 채팅 목록에 추가할 때 사용
-  const addChatMessage = useSocketStore((state) => state.addChatMessage);
   // 서버에서 받은 라운드 정보
   const currentRound = useSocketStore((state) => state.currentRound);
   const totalRounds = useSocketStore((state) => state.totalRounds);
@@ -118,39 +116,9 @@ function GameScreen() {
 
   }, []);
 
-  // answer_correct 수신 테스트 (소켓 연결 전 UI 확인용)
-  const handleAnswerCorrect = () => {
-    console.log("answer_correct 테스트");
-    setIsRoundEnded(true);
-    setShowGameResultModal(true);
-  };
-
   const handleNextRound = () => {
     setShowGameResultModal(false);
     setShowTimeoutModal(false);
-
-    if (currentRound >= totalRounds) {
-      setIsRoundEnded(true);
-      setShowGameEndModal(true);
-      return;
-    }
-
-    // 채팅 라운드 구분선 추가
-    addChatMessage({
-      type: "round",
-      round: currentRound + 1
-    });
-
-    setShowNextRoundModal(true);
-
-    setTimeout(() => {
-      setShowNextRoundModal(false);
-      setTimeLeft(TIME_LIMIT);
-
-      setTimeout(() => {
-        setIsRoundEnded(false);
-      }, 0);
-    }, 1500);
   };
 
   return (
@@ -217,18 +185,6 @@ function GameScreen() {
 
           )
         }
-
-        <button
-          style={{
-            position: "absolute",
-            top: "20px",
-            right: "20px",
-            zIndex: 9999
-          }}
-          onClick={handleAnswerCorrect}
-        >
-          answer_correct 테스트
-        </button>
 
       </div>
 

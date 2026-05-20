@@ -50,7 +50,7 @@ function GameResultModal({
       <div
         className="bg-white border border-dark d-flex flex-column justify-content-center align-items-center"
         style={{
-          width: "450px",
+          width: "500px",
           height: "300px",
           borderRadius: "40px"
         }}
@@ -65,13 +65,30 @@ function GameResultModal({
           ROUND {currentRound} / {maxRound}
         </p>
 
-        <p className="mt-4">
+        <div className="d-flex gap-3 mt-4">
+
+          {/* 계속하기 */}
+          <button
+            className="btn btn-primary"
+            onClick={onNextRound}
+          >
+
+            {
+              currentRound >= maxRound
+                ? "결과보기"
+                : "계속하기"
+            }
+
+          </button>
+
+          {/* 나가기 */}
           {
             currentRound >= maxRound
               ? "잠시 후 결과 화면으로 이동합니다..."
               : "잠시 후 다음 라운드로 이동합니다..."
           }
-        </p>
+
+        </div>
 
       </div>
 
