@@ -77,7 +77,7 @@ function GameScreen() {
     // 라운드 종료 → 타이머 정지, 정답자 유무에 따라 모달 분기
     const onRoundEnd = (data) => {
       setIsRoundEnded(true);
-      if (data.correctPlayers?.length > 0) {
+      if (data.roundWinner) {
         setShowGameResultModal(true);
       } else {
         setShowTimeoutModal(true);
