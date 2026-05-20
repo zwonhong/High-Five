@@ -45,13 +45,15 @@ function GameEndModal({ gameEndData }) {
           <h4>최종 순위</h4>
 
           {
-            sortedScores.map((scoreData, index) => (
-
-              <div key={index}>
-                {index + 1}등 - {scoreData.nickname} : {scoreData.score}점
-              </div>
-
-            ))
+            sortedScores.map((scoreData, index) => {
+              const rank = sortedScores.filter(s => s.score > scoreData.score).length + 1;
+              const isTied = sortedScores.filter(s => s.score === scoreData.score).length > 1;
+              return (
+                <div key={index}>
+                  {rank}등 - {scoreData.nickname} : {scoreData.score}점{isTied ? ' (동점)' : ''}
+                </div>
+              );
+            })
           }
 
         </div>
