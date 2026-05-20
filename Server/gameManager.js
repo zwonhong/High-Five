@@ -117,7 +117,8 @@ const assignTopic = async (client, roomId) => {
  * @param {string} message
  * @returns {object} { isCorrect, player, point, scores, allCorrect }
  */
-const checkAnswer = async (client, roomId, playerId, message) => {
+const checkAnswer = async (client, roomId, playerId, message, inAnswer = false) => {
+    if (!inAnswer) return null;
     const gameState = await getGameState(client, roomId);
     if (!gameState) return null;
 
