@@ -253,6 +253,7 @@ const endRound = async (client, roomId) => {
             totalRounds,
             drawer: nextDrawer,
         },
+        drawerDisconnected: players[currentDrawerIndex]?.isDisconnected ?? false,
     };
 };
 
