@@ -1,50 +1,13 @@
-<<<<<<< HEAD
 import { useGamePhaseStore } from "../stores/useGamePhaseStore";
-=======
-import { useEffect } from "react";
->>>>>>> dc9a23ea0b68739f1272322c62911bc65c5a085e
 
 function GameResultModal({
   winner,
   currentRound,
   maxRound,
   onNextRound,
-<<<<<<< HEAD
 }) {
 
   const goToStart = useGamePhaseStore((state) => state.goToStart);
-=======
-  setShowGameResultModal,
-  setShowGameEndModal
-}) {
-
-  useEffect(() => {
-
-    const timer = setTimeout(() => {
-  
-      if (currentRound >= maxRound) {
-  
-        setShowGameResultModal(false);
-        setShowGameEndModal(true);
-  
-      } else {
-  
-        onNextRound();
-  
-      }
-  
-    }, 1500);
-  
-    return () => clearTimeout(timer);
-  
-  }, [
-    currentRound,
-    maxRound,
-    onNextRound,
-    setShowGameResultModal,
-    setShowGameEndModal
-  ]);
->>>>>>> dc9a23ea0b68739f1272322c62911bc65c5a085e
 
   return (
 
@@ -77,7 +40,6 @@ function GameResultModal({
 
         <p className="mt-4">
           {
-<<<<<<< HEAD
             currentRound < maxRound && (
 
               <button
@@ -96,11 +58,6 @@ function GameResultModal({
               </button>
 
             )
-=======
-            currentRound >= maxRound
-              ? "잠시 후 결과 화면으로 이동합니다..."
-              : "잠시 후 다음 라운드로 이동합니다..."
->>>>>>> dc9a23ea0b68739f1272322c62911bc65c5a085e
           }
         </p>
 
