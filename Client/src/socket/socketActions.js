@@ -11,14 +11,14 @@ export function joinAutoRoom(nickname) {
   return true
 }
 
-export function sendChatMessage(message) {
+export function sendChatMessage(message, inAnswer = false) {
   const trimmedMessage = message.trim()
 
   if (trimmedMessage === '') {
     return false
   }
 
-  socketClient.emit('send_chat', trimmedMessage)
+  socketClient.emit('send_chat', { message: trimmedMessage, inAnswer })
   return true
 }
 

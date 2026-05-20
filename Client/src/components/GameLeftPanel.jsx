@@ -27,7 +27,7 @@ function GameLeftPanel() {
   // 채팅 전송
   const handleSendMessage = () => {
 
-    const success = sendChatMessage(chatInput);
+    const success = sendChatMessage(chatInput, isAnswerMode);
 
     if (!success) {
       return;
