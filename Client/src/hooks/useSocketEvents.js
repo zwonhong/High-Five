@@ -53,7 +53,10 @@ export function useSocketEvents() {
       console.log('Socket connected:', socketClient.id)
 
       const session = getSession()
-      if (session && session.socketId !== socketClient.id) {
+      if (
+        session?.gamePhase === GAME_PHASE.PLAYING &&
+        session.socketId !== socketClient.id
+      ) {
         console.log('이전 세션 감지, 재연결 시도:', session)
         socketClient.emit('try_reconnect', {
           roomId: session.roomId,
@@ -71,13 +74,22 @@ export function useSocketEvents() {
 
     // 방 인원 변경 (입장/퇴장) — 세션 갱신
     socketClient.on('room_update', (data) => {
+      if (!data?.roomId || !Array.isArray(data.users)) return
+
       setRoomId(data.roomId)
       setUsers(data.users)
       setHasJoined(true)
 
-      // 재연결용 세션 저장
-      const session = getSession()
-      saveSession(data.roomId, nickname, socketClient.id, session?.gamePhase ?? GAME_PHASE.WAITING)
+      // 입장·대기·게임 중 세션 갱신 (게임 종료 후 room_update 만 제외)
+      if (!useSocketStore.getState().gameEndData) {
+        const session = getSession()
+        saveSession(
+          data.roomId,
+          nickname,
+          socketClient.id,
+          session?.gamePhase ?? GAME_PHASE.WAITING
+        )
+      }
     })
 
     // 채팅 메시지 수신
@@ -96,9 +108,10 @@ export function useSocketEvents() {
       setGamePlayers(useSocketStore.getState().users)
       goToPlaying()
 
-      // 세션의 gamePhase 갱신
-      const session = getSession()
-      if (session) saveSession(session.roomId, session.nickname, session.socketId, GAME_PHASE.PLAYING)
+      const { roomId, nickname: storedNickname } = useSocketStore.getState()
+      if (roomId && storedNickname) {
+        saveSession(roomId, storedNickname, socketClient.id, GAME_PHASE.PLAYING)
+      }
     }
 
     socketClient.on('game_start', handleGameStart)
@@ -141,6 +154,9 @@ export function useSocketEvents() {
     socketClient.on('game_end', (data) => {
       console.log('game_end 수신', data)
       setGameEndData(data)
+      if (data?.roomId && Array.isArray(data.users)) {
+        setUsers(data.users)
+      }
       clearSession()
     })
 

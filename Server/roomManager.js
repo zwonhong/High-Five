@@ -174,9 +174,7 @@ const resetRoomAfterGame = async (client, roomId) => {
 
     const room = JSON.parse(data);
     room.isStarted = false;
-    room.users.forEach((u) => {
-        u.isDisconnected = false;
-    });
+    // isDisconnected 는 유지 (처음으로 나간 유저의 10초 유예·끊김 표시를 되돌리지 않음)
 
     await client.set(roomId, JSON.stringify(room));
     console.log(`[SYSTEM] room reset to waiting (post game_end): ${roomId}`);

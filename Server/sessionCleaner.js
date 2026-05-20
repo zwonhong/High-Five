@@ -50,4 +50,31 @@ const cleanupGhostUsers = async (io, pubClient) => {
     }
 };
 
-module.exports = { cleanupGhostUsers };
+/**
+ * 한 방에서 Redis에는 있으나 소켓이 없는 유저 제거 (게임 종료 후 정리용)
+ * @returns {object|null} 갱신된 room, 방 삭제 시 null
+ */
+const cleanupRoomGhosts = async (io, pubClient, roomId) => {
+    const data = await pubClient.get(roomId);
+    if (!data) return null;
+
+    const room = JSON.parse(data);
+    const before = room.users.length;
+    const activeSockets = await io.allSockets();
+
+    room.users = room.users.filter((user) => activeSockets.has(user.id));
+
+    if (room.users.length === before) return room;
+
+    if (room.users.length === 0) {
+        await pubClient.del(roomId);
+        console.log(`[CLEANUP] room ${roomId} deleted (ghost purge)`);
+        return null;
+    }
+
+    await pubClient.set(roomId, JSON.stringify(room));
+    console.warn(`[CLEANUP] room ${roomId}: removed ${before - room.users.length} ghost(s)`);
+    return room;
+};
+
+module.exports = { cleanupGhostUsers, cleanupRoomGhosts };
