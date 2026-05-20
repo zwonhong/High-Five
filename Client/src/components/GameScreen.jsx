@@ -233,7 +233,8 @@ function GameScreen({
               currentRound={currentRound}
               maxRound={maxRound}
               onNextRound={handleNextRound}
-              setGameStarted={setGameStarted}
+              setShowGameResultModal={setShowGameResultModal}
+              setShowGameEndModal={setShowGameEndModal}
             />
 
           )
@@ -267,7 +268,8 @@ function GameScreen({
               currentRound={currentRound}
               maxRound={maxRound}
               onNextRound={handleNextRound}
-              setGameStarted={setGameStarted}
+              setShowTimeoutModal={setShowTimeoutModal}
+              setShowGameEndModal={setShowGameEndModal}
             />
 
           )
