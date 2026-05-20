@@ -146,6 +146,8 @@ function GameScreen() {
               currentRound={currentRound}
               maxRound={totalRounds}
               onNextRound={handleNextRound}
+              setShowGameResultModal={setShowGameResultModal}
+              setShowGameEndModal={setShowGameEndModal}
             />
 
           )
@@ -178,6 +180,8 @@ function GameScreen() {
               currentRound={currentRound}
               maxRound={totalRounds}
               onNextRound={handleNextRound}
+              setShowTimeoutModal={setShowTimeoutModal}
+              setShowGameEndModal={setShowGameEndModal}
             />
 
           )
