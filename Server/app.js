@@ -3,6 +3,10 @@ const http = require('http');
 const path = require('path');
 const setupSocket = require('./socket');
 
+const { handleProcessError } = require('./errorHandler');
+
+handleProcessError(); // 프로세스 레벨 에러 핸들링 설정 Set up process-level error handling
+
 const app = express();
 const server = http.createServer(app);
 

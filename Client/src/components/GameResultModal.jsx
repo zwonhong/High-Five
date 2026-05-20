@@ -2,7 +2,6 @@ import { useEffect } from "react";
 
 function GameResultModal({
   winner,
-  nickname,
   currentRound,
   maxRound,
   onNextRound,
