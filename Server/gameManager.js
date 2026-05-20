@@ -35,6 +35,19 @@ const deleteGameState = async (client, roomId) => {
     await client.del(gameKey(roomId));
 };
 
+const advanceToNextActiveDrawer = (gameState) => {
+    const { players, currentDrawerIndex } = gameState;
+    const len = players.length;
+    for (let i = 1; i <= len; i++) {
+        const idx = (currentDrawerIndex + i) % len;
+        if (!players[idx].isDisconnected) {
+            gameState.currentDrawerIndex = idx;
+            return players[idx];
+        }
+    }
+    return null;
+};
+
 // ─────────────────────────────────────────
 // 게임 시작 Game Start
 // ─────────────────────────────────────────
@@ -92,9 +105,14 @@ const assignTopic = async (client, roomId) => {
     gameState.currentWinner = null;
     gameState.usedTopics = [...usedTopics, topic];
 
+    let drawer = gameState.players[gameState.currentDrawerIndex];
+    if (drawer?.isDisconnected) {
+        drawer = advanceToNextActiveDrawer(gameState);
+        if (!drawer) return null;
+    }
+
     await setGameState(client, roomId, gameState);
 
-    const drawer = gameState.players[gameState.currentDrawerIndex];
     console.log(`[GAME] [Room ${roomId}] Round ${gameState.currentRound} topic: ${topic} | drawer: ${drawer.nickname}`);
 
     return {
@@ -125,9 +143,12 @@ const checkAnswer = async (client, roomId, playerId, message, inAnswer = false) 
     if (gameState.phase !== GAME_PHASE.DRAWING) return null;
 
     const drawer = gameState.players[gameState.currentDrawerIndex];
+    const player = gameState.players.find((p) => p.id === playerId);
+
+    if (!player || player.isDisconnected) return null;
 
     // 출제자는 정답 불가
-    if (drawer.id === playerId) return null;
+    if (drawer?.id === playerId) return null;
 
     // 이미 정답자 나왔으면 무시
     if (gameState.currentWinner) return null;
@@ -136,8 +157,6 @@ const checkAnswer = async (client, roomId, playerId, message, inAnswer = false) 
     const normalize = (str) => str.trim().toLowerCase().replace(/[^a-z0-9가-힣]/g, '');
     const isCorrect = normalize(message) === normalize(gameState.currentTopic);
     if (!isCorrect) return { isCorrect: false };
-
-    const player = gameState.players.find((p) => p.id === playerId);
 
     // 정답자 3점 부여
     gameState.scores[playerId] = (gameState.scores[playerId] || 0) + 3;
@@ -211,17 +230,19 @@ const endRound = async (client, roomId) => {
         };
     }
 
-    const nextDrawerIndex = (currentDrawerIndex + 1) % players.length;
-
     gameState.currentRound = currentRound + 1;
-    gameState.currentDrawerIndex = nextDrawerIndex;
+    gameState.currentDrawerIndex = currentDrawerIndex;
+    const nextDrawer = advanceToNextActiveDrawer(gameState);
+    if (!nextDrawer) {
+        await setGameState(client, roomId, gameState);
+        return null;
+    }
     gameState.currentTopic = '';
     gameState.currentWinner = null;
     gameState.phase = GAME_PHASE.DRAWING;
 
     await setGameState(client, roomId, gameState);
 
-    const nextDrawer = players[nextDrawerIndex];
     console.log(`[GAME] [Room ${roomId}] Round ${gameState.currentRound} | next drawer: ${nextDrawer.nickname}`);
 
     return {
@@ -238,6 +259,89 @@ const endRound = async (client, roomId) => {
 // ─────────────────────────────────────────
 // 모듈 내보내기 Export
 // ─────────────────────────────────────────
+const markPlayerInactive = async (client, roomId, playerId) => {
+    const gameState = await getGameState(client, roomId);
+    if (!gameState) return { needsRoundRefresh: false };
+
+    const player = gameState.players.find((p) => p.id === playerId);
+    if (!player || player.isDisconnected) return { needsRoundRefresh: false };
+
+    player.isDisconnected = true;
+
+    let needsRoundRefresh = false;
+    if (gameState.phase === GAME_PHASE.DRAWING) {
+        const drawer = gameState.players[gameState.currentDrawerIndex];
+        if (drawer?.id === playerId) {
+            const next = advanceToNextActiveDrawer(gameState);
+            if (next) {
+                needsRoundRefresh = true;
+                gameState.currentTopic = '';
+                gameState.currentWinner = null;
+            }
+        }
+    }
+
+    await setGameState(client, roomId, gameState);
+    return { needsRoundRefresh };
+};
+
+const removePlayerFromGame = async (client, roomId, playerId) => {
+    const gameState = await getGameState(client, roomId);
+    if (!gameState) return { needsRoundRefresh: false };
+
+    const idx = gameState.players.findIndex((p) => p.id === playerId);
+    if (idx === -1) return { needsRoundRefresh: false };
+
+    const wasDrawer =
+        gameState.phase === GAME_PHASE.DRAWING &&
+        gameState.players[gameState.currentDrawerIndex]?.id === playerId;
+
+    gameState.players.splice(idx, 1);
+    delete gameState.scores[playerId];
+
+    if (gameState.players.length === 0) {
+        await deleteGameState(client, roomId);
+        return { needsRoundRefresh: false, gameDeleted: true };
+    }
+
+    if (gameState.currentDrawerIndex >= gameState.players.length) {
+        gameState.currentDrawerIndex = 0;
+    } else if (idx < gameState.currentDrawerIndex) {
+        gameState.currentDrawerIndex -= 1;
+    }
+
+    let needsRoundRefresh = false;
+    if (wasDrawer) {
+        const next = advanceToNextActiveDrawer(gameState);
+        if (next) {
+            needsRoundRefresh = true;
+            gameState.currentTopic = '';
+            gameState.currentWinner = null;
+        }
+    }
+
+    await setGameState(client, roomId, gameState);
+    return { needsRoundRefresh };
+};
+
+const reactivatePlayer = async (client, roomId, oldSocketId, newSocketId) => {
+    const gameState = await getGameState(client, roomId);
+    if (!gameState) return;
+
+    const player = gameState.players.find((p) => p.id === oldSocketId);
+    if (!player) return;
+
+    player.id = newSocketId;
+    player.isDisconnected = false;
+
+    if (gameState.scores[oldSocketId] !== undefined) {
+        gameState.scores[newSocketId] = gameState.scores[oldSocketId];
+        delete gameState.scores[oldSocketId];
+    }
+
+    await setGameState(client, roomId, gameState);
+};
+
 module.exports = {
     GAME_PHASE,
     MAX_ROUNDS,
@@ -248,4 +352,7 @@ module.exports = {
     endRound,
     getGameState,
     deleteGameState,
+    markPlayerInactive,
+    removePlayerFromGame,
+    reactivatePlayer,
 };
