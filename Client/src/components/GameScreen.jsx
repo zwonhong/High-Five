@@ -19,7 +19,6 @@ const TIME_LIMIT = 60;
 function GameScreen() {
 
   const nickname = useSocketStore((state) => state.nickname);
-  // 라운드 구분선을 채팅 목록에 추가할 때 사용
   // 서버에서 받은 라운드 정보
   const currentRound = useSocketStore((state) => state.currentRound);
   const totalRounds = useSocketStore((state) => state.totalRounds);
