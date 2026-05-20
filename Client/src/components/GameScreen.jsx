@@ -170,6 +170,11 @@ function GameScreen() {
               currentRound={currentRound}
               maxRound={totalRounds}
               onNextRound={handleNextRound}
+<<<<<<< HEAD
+=======
+              setShowGameResultModal={setShowGameResultModal}
+              setShowGameEndModal={setShowGameEndModal}
+>>>>>>> dc9a23ea0b68739f1272322c62911bc65c5a085e
             />
 
           )
@@ -202,6 +207,11 @@ function GameScreen() {
               currentRound={currentRound}
               maxRound={totalRounds}
               onNextRound={handleNextRound}
+<<<<<<< HEAD
+=======
+              setShowTimeoutModal={setShowTimeoutModal}
+              setShowGameEndModal={setShowGameEndModal}
+>>>>>>> dc9a23ea0b68739f1272322c62911bc65c5a085e
             />
 
           )

@@ -33,8 +33,96 @@ function GameLeftPanel() {
       return;
     }
 
+<<<<<<< HEAD
     // 정답모드는 1회만 유지
     if (isAnswerMode) {
+=======
+    // 일반 채팅 전송
+    if (!isAnswerMode) {
+
+      console.log("일반 채팅 전송");
+
+      /* 
+      socket.emit("chat_message", {
+         type: "normal",
+         message: chatInput
+      });
+      */
+      // 임시 테스트용
+      setMessages((prev) => [
+
+        ...prev,
+
+        {
+          user: nickname,
+          text: chatInput,
+          type: "normal"
+        }
+
+      ]);
+
+    }
+
+    // 정답 채팅 전송
+    else {
+
+      console.log("정답 채팅 전송");
+
+      // 메시지 고유 id
+      const messageId = Date.now();
+
+      const answerMessage = {
+
+        id: messageId,
+        user: nickname,
+        text: chatInput,
+        type: "answer",
+        isWrong: false
+
+      };
+
+      /*
+      socket.emit("chat_message", {
+        id: messageId,
+        type: "answer",
+        message: chatInput
+      });
+      */
+
+      // 임시 UI 테스트용
+      setMessages((prev) => [
+
+        ...prev,
+        answerMessage
+
+      ]);
+
+      // ===== 임시 wrong_answer 테스트 =====
+      // 1초 후 틀린 답 처리
+
+      setTimeout(() => {
+
+        console.log("wrong_answer 수신");
+
+        setMessages((prev) =>
+
+          prev.map((msg) =>
+
+            msg.id === messageId
+              ? {
+                ...msg,
+                isWrong: true
+              }
+              : msg
+
+          )
+
+        );
+
+      }, 1000);
+
+      // 정답모드는 1회만 유지
+>>>>>>> dc9a23ea0b68739f1272322c62911bc65c5a085e
       setIsAnswerMode(false);
     }
 
@@ -107,7 +195,15 @@ function GameLeftPanel() {
 
                 <div
                   key={index}
+<<<<<<< HEAD
                   className="normal-message"
+=======
+                  className={
+                    message.type === "answer"
+                      ? `answer-message ${message.isWrong ? "wrong-message" : ""}`
+                      : "normal-message"
+                  }
+>>>>>>> dc9a23ea0b68739f1272322c62911bc65c5a085e
                 >
 
                   <div>
