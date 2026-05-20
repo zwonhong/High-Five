@@ -96,6 +96,7 @@ module.exports = async (server) => {
         if (result.isGameOver) {
             io.to(roomId).emit('game_end', { scores: result.scores, winner: result.winner });
         } else {
+            await new Promise((r) => setTimeout(r, 1500));
             io.to(roomId).emit('next_round', result.nextRound);
 
             const topicData = await assignTopic(pubClient, roomId);
