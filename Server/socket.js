@@ -186,7 +186,7 @@ module.exports = async (server) => {
 
         // 채팅 로직 Chat logic
         // 유저가 메시지를 보냈을 때 실행됩니다. When a user sends a message, this runs.
-        socket.on('send_chat', async ({ message, inAnswer }) => {
+        socket.on('send_chat', async (msg) => {
             try {
                 const roomId = socket.currentRoom;
                 const nickname = socket.nickname;
@@ -199,16 +199,16 @@ module.exports = async (server) => {
                 }
                 socket.lastChatTime = now;
 
-                if (roomId && message.trim()) {
+                if (roomId && msg.trim()) {
                     io.to(roomId).emit('receive_chat', {
                         sender: nickname,
-                        message: message,
+                        message: msg,
                         timestamp: now
                     });
-                    console.log(`[CHAT][${roomId}] ${nickname}: ${message}`);
+                    console.log(`[CHAT][${roomId}] ${nickname}: ${msg}`);
 
                     // 정답 확인 → 정답 즉시 라운드 종료
-                    const answerResult = await checkAnswer(pubClient, roomId, socket.id, message, inAnswer);
+                    const answerResult = await checkAnswer(pubClient, roomId, socket.id, msg);
                     if (answerResult?.isCorrect) {
                         io.to(roomId).emit('correct_answer', {
                             nickname: answerResult.player.nickname,
