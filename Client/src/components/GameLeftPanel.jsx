@@ -33,8 +33,63 @@ function GameLeftPanel() {
       return;
     }
 
-    // 정답모드는 1회만 유지
-    if (isAnswerMode) {
+    // 정답 채팅 전송
+    else {
+
+      console.log("정답 채팅 전송");
+
+      // 메시지 고유 id
+      const messageId = Date.now();
+
+      const answerMessage = {
+        id: messageId,
+        user: nickname,
+        text: chatInput,
+        type: "answer",
+        isWrong: false
+      };
+
+      /*
+      socket.emit("chat_message", {
+        id: messageId,
+        type: "answer",
+        message: chatInput
+      });
+      */
+
+      // 임시 UI 테스트용
+      setMessages((prev) => [
+
+        ...prev,
+        answerMessage
+
+      ]);
+
+      // 임시 wrong_answer 테스트
+      // 1초 후 틀린 답 처리
+
+      setTimeout(() => {
+
+        console.log("wrong_answer 수신");
+
+        setMessages((prev) =>
+
+          prev.map((msg) =>
+
+            msg.id === messageId
+              ? {
+                ...msg,
+                isWrong: true
+              }
+              : msg
+
+          )
+
+        );
+
+      }, 1000);
+
+      // 정답모드는 1회만 유지
       setIsAnswerMode(false);
     }
 
@@ -42,6 +97,26 @@ function GameLeftPanel() {
     setChatInput("");
   };
 
+  /* 
+  socket.on("wrong_message", ({ messageId }) => {
+
+  setMessages((prev) =>
+
+    prev.map((msg) =>
+
+      msg.id === messageId
+        ? {
+            ...msg,
+            isWrong: true
+          }
+        : msg
+
+    )
+
+  );
+
+}); 
+*/
   const handleKeyDown = (e) => {
 
     // 한글 입력 채팅 error처리용
@@ -107,7 +182,11 @@ function GameLeftPanel() {
 
                 <div
                   key={index}
-                  className="normal-message"
+                  className={
+                    message.type === "answer"
+                      ? `answer-message ${message.isWrong ? "wrong-message" : ""}`
+                      : "normal-message"
+                  }
                 >
 
                   <div>
