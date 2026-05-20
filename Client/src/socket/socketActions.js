@@ -7,6 +7,7 @@ export function joinAutoRoom(nickname) {
     return false
   }
 
+  socketClient.connect()
   socketClient.emit('join_auto', trimmedNickname)
   return true
 }
