@@ -1,0 +1,56 @@
+/* RIGHT PANEL */
+
+.right-panel {
+
+    width: var(--right-width);
+  
+    display: flex;
+    flex-direction: column;
+  
+    justify-content: space-between;
+  }
+  
+  
+  /* 유저 목록 */
+  
+  .user-list {
+  
+    display: flex;
+    flex-direction: column;
+  
+    gap: var(--user-gap);
+  }
+  
+  
+  /* 유저 박스 */
+  
+  .user-box {
+  
+    width: 100%;
+  
+    height: calc(var(--ui-scale) * 0.08);
+  
+    display: flex;
+  
+    justify-content: center;
+    align-items: center;
+  }
+  
+  
+  /* 타이머 */
+  
+  .timer-box {
+  
+    width: 100%;
+  
+    height: calc(var(--ui-scale) * 0.18);
+  
+    display: flex;
+  
+    justify-content: center;
+    align-items: center;
+  
+    font-size: calc(var(--font-size) * 1.8);
+  
+    font-weight: bold;
+  }

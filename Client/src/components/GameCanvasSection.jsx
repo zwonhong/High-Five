@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import "../styles/GameCanvasSection.css";
 
 import {
   Pencil,
@@ -314,17 +315,15 @@ function GameCanvasSection({
   };
 
   return (
-
     <div className="canvas-section">
-
-      {/* 주제 */}
       <div className="topic-box common-box">
-
-        <strong>주제</strong>
-
+        {
+          isDrawer && topic
+            ? <strong>주제: {topic}</strong>
+            : <strong>주제: ???</strong>
+        }
       </div>
 
-      {/* 캔버스 */}
       <div className="canvas-box common-box">
 
         <canvas
@@ -335,45 +334,37 @@ function GameCanvasSection({
 
           height={400}
 
-          style={{
-            width: "100%",
-            height: "100%",
-            backgroundColor: "white",
-
-            cursor:
-
+          className={`
+            game-canvas
+            ${
               currentTool === "eraser"
-                ? "pointer"
+                ? "cursor-eraser"
                 : (
                   isDrawer
-                    ? "crosshair"
-                    : "not-allowed"
+                    ? "cursor-draw"
+                    : "cursor-disabled"
                 )
-          }}
+            }
+          `}
 
           onMouseDown={handleMouseDown}
-
           onMouseMove={handleMouseMove}
-
           onMouseUp={handleMouseUp}
-
           onMouseLeave={handleMouseUp}
         />
 
       </div>
 
-      {/* 툴바 */}
       <div className="toolbar">
 
-        {/* 검정 펜 */}
         <button
           className="tool-button"
-
           onClick={() => {
 
             setCurrentColor("#000000");
 
             setCurrentTool("pen");
+
           }}
         >
           <Pencil
@@ -382,15 +373,14 @@ function GameCanvasSection({
           />
         </button>
 
-        {/* 파랑 펜 */}
         <button
           className="tool-button blue"
-
           onClick={() => {
 
             setCurrentColor("#0000ff");
 
             setCurrentTool("pen");
+
           }}
         >
           <Pencil
@@ -400,15 +390,14 @@ function GameCanvasSection({
           />
         </button>
 
-        {/* 빨강 펜 */}
         <button
           className="tool-button red"
-
           onClick={() => {
 
             setCurrentColor("#ff0000");
 
             setCurrentTool("pen");
+
           }}
         >
           <Pencil
@@ -418,10 +407,8 @@ function GameCanvasSection({
           />
         </button>
 
-        {/* 지우개 */}
         <button
           className="tool-button"
-
           onClick={() => setCurrentTool("eraser")}
         >
           <Eraser
@@ -430,10 +417,8 @@ function GameCanvasSection({
           />
         </button>
 
-        {/* undo */}
         <button
           className="tool-button"
-
           onClick={handleUndo}
         >
           <Undo2
