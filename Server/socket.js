@@ -5,9 +5,10 @@ const { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, r
 // errorHandling
 const { redisConfig, handleRedisError, emitError } = require('./errorHandler');
 const { cleanupGhostUsers } = require('./sessionCleaner');
-const { startGame, assignTopic, checkAnswer, endRound, startTimer, clearTimer, handlePlayerLeave } = require('./gameManager');
+const { startGame, assignTopic, checkAnswer, endRound, deleteGameState, TIMER_DURATION } = require('./gameManager');
 
 const reconnectionTimers = new Map(); // socketId -> setTimeout 객체
+const roundTimers = new Map(); // roomId → 라운드 타이머 (오케스트레이션 단순화 전까지 socket 측 보관)
 
 // 모듈로 서버를 내보내기 Export server as module
 module.exports = async (server) => {
@@ -59,10 +60,35 @@ module.exports = async (server) => {
     pubClient.connect().catch(() => {});
     subClient.connect().catch(() => {});
 
+    const clearTimer = (roomId) => {
+        const t = roundTimers.get(roomId);
+        if (t) {
+            clearTimeout(t);
+            roundTimers.delete(roomId);
+        }
+    };
+
+    const startTimer = (roomId, onTimeout) => {
+        clearTimer(roomId);
+        roundTimers.set(
+            roomId,
+            setTimeout(() => {
+                Promise.resolve(onTimeout(roomId)).catch((e) => console.error('[TIMER]', e));
+            }, TIMER_DURATION * 1000)
+        );
+    };
+
+    const handlePlayerLeave = async (roomId, _playerId, remainingUsers) => {
+        if (remainingUsers.length === 0) {
+            clearTimer(roomId);
+            await deleteGameState(pubClient, roomId);
+        }
+    };
+
     // 라운드 종료 처리 (타이머 만료 or 모두 정답)
     const handleRoundEnd = async (roomId) => {
         clearTimer(roomId);
-        const result = await endRound(roomId);
+        const result = await endRound(pubClient, roomId);
         if (!result) return;
 
         io.to(roomId).emit('round_end', result.roundResult);
@@ -72,7 +98,7 @@ module.exports = async (server) => {
         } else {
             io.to(roomId).emit('next_round', result.nextRound);
 
-            const topicData = await assignTopic(roomId);
+            const topicData = await assignTopic(pubClient, roomId);
             if (topicData) {
                 const { topic, currentRound, totalRounds, drawer } = topicData;
                 io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
@@ -136,10 +162,10 @@ module.exports = async (server) => {
                     if (isStarted) {
                         console.log(`[SYSTEM] room ${roomId} is now ready to start!`);
 
-                        const gameData = await startGame(roomId, users);
+                        const gameData = await startGame(pubClient, roomId, users);
                         io.to(roomId).emit('game_started', gameData);
 
-                        const topicData = await assignTopic(roomId);
+                        const topicData = await assignTopic(pubClient, roomId);
                         if (topicData) {
                             const { topic, currentRound, totalRounds, drawer } = topicData;
                             io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
@@ -181,7 +207,7 @@ module.exports = async (server) => {
                     console.log(`[CHAT][${roomId}] ${nickname}: ${msg}`);
 
                     // 정답 확인 → 정답 즉시 라운드 종료
-                    const answerResult = await checkAnswer(roomId, socket.id, msg);
+                    const answerResult = await checkAnswer(pubClient, roomId, socket.id, msg);
                     if (answerResult?.isCorrect) {
                         io.to(roomId).emit('correct_answer', {
                             nickname: answerResult.player.nickname,
