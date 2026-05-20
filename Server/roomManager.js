@@ -167,4 +167,20 @@ const removeUserFromRoom = async (client, roomId, socketId) => {
 };
 
 // 함수 -> 모듈로 내보내기 Export functions as module
-module.exports = { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, reconnectUser };
+// 게임 종료 후 room_* 를 대기 상태로 되돌림 (game_* 삭제와 lifecycle 동기화)
+const resetRoomAfterGame = async (client, roomId) => {
+    const data = await client.get(roomId);
+    if (!data) return null;
+
+    const room = JSON.parse(data);
+    room.isStarted = false;
+    room.users.forEach((u) => {
+        u.isDisconnected = false;
+    });
+
+    await client.set(roomId, JSON.stringify(room));
+    console.log(`[SYSTEM] room reset to waiting (post game_end): ${roomId}`);
+    return room;
+};
+
+module.exports = { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, reconnectUser, resetRoomAfterGame };

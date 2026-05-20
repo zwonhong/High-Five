@@ -1,7 +1,7 @@
 const { Server } = require('socket.io');
 const { createClient } = require("redis"); // 멀티 서버를 위한 redis 클라이언트 추가
 const { createAdapter } = require("@socket.io/redis-adapter"); // 멀티 서버를 위한 redis 어댑터 추가
-const { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, reconnectUser } = require('./roomManager');
+const { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, reconnectUser, resetRoomAfterGame } = require('./roomManager');
 // errorHandling
 const { redisConfig, handleRedisError, emitError } = require('./errorHandler');
 const { cleanupGhostUsers } = require('./sessionCleaner');
@@ -106,6 +106,13 @@ module.exports = async (server) => {
 
         if (result.isGameOver) {
             io.to(roomId).emit('game_end', { scores: result.scores, winner: result.winner });
+
+            if (result.roomResetNeeded) {
+                const room = await resetRoomAfterGame(pubClient, roomId);
+                if (room) {
+                    io.to(roomId).emit('room_update', { roomId, users: room.users });
+                }
+            }
         } else {
             await new Promise((r) => setTimeout(r, 1500));
             io.to(roomId).emit('next_round', result.nextRound);
