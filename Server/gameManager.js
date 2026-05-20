@@ -207,6 +207,7 @@ const endRound = async (client, roomId) => {
             scores,
             winner,
             rankings,
+            roomResetNeeded: true,
         };
     }
 
