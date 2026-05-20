@@ -1,13 +1,8 @@
-import { useGamePhaseStore } from "../stores/useGamePhaseStore";
-
 function GameResultModal({
   winner,
   currentRound,
   maxRound,
-  onNextRound,
 }) {
-
-  const goToStart = useGamePhaseStore((state) => state.goToStart);
 
   return (
 
@@ -38,45 +33,13 @@ function GameResultModal({
           ROUND {currentRound} / {maxRound}
         </p>
 
-        <div className="d-flex gap-3 mt-4">
-
-          {/* 계속하기 */}
-          <button
-            className="btn btn-primary"
-            onClick={onNextRound}
-          >
-
-            {
-              currentRound >= maxRound
-                ? "결과보기"
-                : "계속하기"
-            }
-
-          </button>
-
-          {/* 나가기 */}
+        <p className="mt-4">
           {
-            currentRound < maxRound && (
-
-              <button
-                className="btn btn-danger"
-
-                onClick={() => {
-
-                  console.log("user_exit 전송");
-
-                  // socket.emit("user_exit");
-
-                  goToStart();
-                }}
-              >
-                나가기
-              </button>
-
-            )
+            currentRound >= maxRound
+              ? "잠시 후 결과 화면으로 이동합니다..."
+              : "잠시 후 다음 라운드로 이동합니다..."
           }
-
-        </div>
+        </p>
 
       </div>
 
