@@ -69,22 +69,17 @@ function GameScreen() {
   // 소켓 이벤트 → UI 상태 제어 (데이터 싱크는 useSocketEvents에서 처리)
   useEffect(() => {
 
-    // 정답자 발생 → 알림만 (모달은 round_end에서 처리)
-    const onCorrectAnswer = () => {
-      // useSocketEvents에서 correctAnswerInfo 업데이트
-    };
-
     // 라운드 종료 → 타이머 정지, 정답자 유무에 따라 모달 분기
     const onRoundEnd = (data) => {
       setIsRoundEnded(true);
-      if (data.correctPlayers?.length > 0) {
+      if (data.roundWinner) {
         setShowGameResultModal(true);
       } else {
         setShowTimeoutModal(true);
       }
     };
 
-    // 다음 라운드 → 모달 닫고 타이머 초기화
+    // 다음 라운드 → 모달 닫기 (타이머 초기화는 round_start에서 처리)
     const onNextRound = () => {
       setShowGameResultModal(false);
       setShowTimeoutModal(false);
@@ -92,28 +87,30 @@ function GameScreen() {
 
       setTimeout(() => {
         setShowNextRoundModal(false);
-        setTimeLeft(TIME_LIMIT);
-
-        // 렌더 완료 후 타이머 시작
-        setTimeout(() => {
-          setIsRoundEnded(false);
-        }, 0);
       }, 1500);
     };
 
-    // 게임 종료 → 게임 종료 모달 표시
+    // 라운드 시작 → 서버 타이머와 동기화
+    const onRoundStart = () => {
+      setTimeLeft(TIME_LIMIT);
+      setIsRoundEnded(false);
+    };
+
+    // 게임 종료 → 다른 모달 닫고 게임 종료 모달 표시
     const onGameEnd = () => {
       setIsRoundEnded(true);
+      setShowGameResultModal(false);
+      setShowTimeoutModal(false);
       setShowGameEndModal(true);
     };
 
-    socketClient.on('correct_answer', onCorrectAnswer);
+    socketClient.on('round_start', onRoundStart);
     socketClient.on('round_end', onRoundEnd);
     socketClient.on('next_round', onNextRound);
     socketClient.on('game_end', onGameEnd);
 
     return () => {
-      socketClient.off('correct_answer', onCorrectAnswer);
+      socketClient.off('round_start', onRoundStart);
       socketClient.off('round_end', onRoundEnd);
       socketClient.off('next_round', onNextRound);
       socketClient.off('game_end', onGameEnd);
@@ -121,14 +118,6 @@ function GameScreen() {
 
   }, []);
 
-  // answer_correct 수신 테스트 (소켓 연결 전 UI 확인용)
-  const handleAnswerCorrect = () => {
-    console.log("answer_correct 테스트");
-    setIsRoundEnded(true);
-    setShowGameResultModal(true);
-  };
-
-  // 다음 라운드 테스트 (소켓 연결 전 UI 확인용)
   const handleNextRound = () => {
     setShowGameResultModal(false);
     setShowTimeoutModal(false);
@@ -217,18 +206,6 @@ function GameScreen() {
 
           )
         }
-
-        <button
-          style={{
-            position: "absolute",
-            top: "20px",
-            right: "20px",
-            zIndex: 9999
-          }}
-          onClick={handleAnswerCorrect}
-        >
-          answer_correct 테스트
-        </button>
 
       </div>
 

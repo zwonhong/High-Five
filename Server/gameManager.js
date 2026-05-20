@@ -20,23 +20,29 @@ const TIMER_DURATION = 60;
 // 게임 상태 인메모리 저장소
 // Game State In-Memory Store
 // ─────────────────────────────────────────
-const gameStates = new Map(); // roomId → gameState
+const gameKey = (roomId) => `game_${roomId}`;
 
-const getGameState = (roomId) => gameStates.get(roomId) || null;
-const setGameState = (roomId, state) => gameStates.set(roomId, state);
-const deleteGameState = (roomId) => gameStates.delete(roomId);
+const getGameState = async (client, roomId) => {
+    const data = await client.get(gameKey(roomId));
+    return data ? JSON.parse(data) : null;
+};
+
+const setGameState = async (client, roomId, state) => {
+    await client.set(gameKey(roomId), JSON.stringify(state));
+};
+
+const deleteGameState = async (client, roomId) => {
+    await client.del(gameKey(roomId));
+};
 
 // ─────────────────────────────────────────
 // 게임 시작 Game Start
 // ─────────────────────────────────────────
 
 /**
- * 게임 초기화
- * @param {string} roomId
- * @param {Array} users - [{ id, nickname }] 입장 순서대로
- * @returns {object} 게임 시작 정보 { roomId, totalRounds, currentRound, drawer }
+ * @returns {object} { roomId, totalRounds, currentRound, drawer }
  */
-const startGame = (roomId, users) => {
+const startGame = async (client, roomId, users) => {
     const gameState = {
         roomId,
         phase: GAME_PHASE.DRAWING,
@@ -50,11 +56,11 @@ const startGame = (roomId, users) => {
         usedTopics: [],
     };
 
-    users.forEach(user => {
+    users.forEach((user) => {
         gameState.scores[user.id] = 0;
     });
 
-    setGameState(roomId, gameState);
+    await setGameState(client, roomId, gameState);
 
     const drawer = users[0];
     console.log(`[GAME] Game started in room ${roomId} | first drawer: ${drawer.nickname}`);
@@ -73,11 +79,10 @@ const startGame = (roomId, users) => {
 
 /**
  * 현재 라운드 주제 랜덤 배정
- * @param {string} roomId
- * @returns {object} { topic, currentRound, totalRounds, drawer }
+ * @returns {object|null} { topic, currentRound, totalRounds, drawer }
  */
-const assignTopic = (roomId) => {
-    const gameState = getGameState(roomId);
+const assignTopic = async (client, roomId) => {
+    const gameState = await getGameState(client, roomId);
     if (!gameState) return null;
 
     const usedTopics = gameState.usedTopics || [];
@@ -87,7 +92,7 @@ const assignTopic = (roomId) => {
     gameState.currentWinner = null;
     gameState.usedTopics = [...usedTopics, topic];
 
-    setGameState(roomId, gameState);
+    await setGameState(client, roomId, gameState);
 
     const drawer = gameState.players[gameState.currentDrawerIndex];
     console.log(`[GAME] [Room ${roomId}] Round ${gameState.currentRound} topic: ${topic} | drawer: ${drawer.nickname}`);
@@ -112,8 +117,9 @@ const assignTopic = (roomId) => {
  * @param {string} message
  * @returns {object} { isCorrect, player, point, scores, allCorrect }
  */
-const checkAnswer = (roomId, playerId, message) => {
-    const gameState = getGameState(roomId);
+const checkAnswer = async (client, roomId, playerId, message, inAnswer = false) => {
+    if (!inAnswer) return null;
+    const gameState = await getGameState(client, roomId);
     if (!gameState) return null;
 
     if (gameState.phase !== GAME_PHASE.DRAWING) return null;
@@ -131,13 +137,13 @@ const checkAnswer = (roomId, playerId, message) => {
     const isCorrect = normalize(message) === normalize(gameState.currentTopic);
     if (!isCorrect) return { isCorrect: false };
 
-    const player = gameState.players.find(p => p.id === playerId);
+    const player = gameState.players.find((p) => p.id === playerId);
 
     // 정답자 3점 부여
     gameState.scores[playerId] = (gameState.scores[playerId] || 0) + 3;
     gameState.currentWinner = player;
 
-    setGameState(roomId, gameState);
+    await setGameState(client, roomId, gameState);
 
     console.log(`[GAME] [Room ${roomId}] ${player.nickname} correct! (+3pts)`);
 
@@ -159,8 +165,20 @@ const checkAnswer = (roomId, playerId, message) => {
  * @param {string} roomId
  * @returns {object} { isGameOver, roundResult, nextRound?, scores?, winner?, rankings? }
  */
-const endRound = (roomId) => {
-    const gameState = getGameState(roomId);
+const getRankings = (players, scores) =>
+    players
+        .map((player) => ({
+            ...player,
+            score: scores[player.id] || 0,
+        }))
+        .sort((a, b) => b.score - a.score)
+        .map((player, index) => ({
+            ...player,
+            rank: index + 1,
+        }));
+
+const endRound = async (client, roomId) => {
+    const gameState = await getGameState(client, roomId);
     if (!gameState) return null;
 
     const { currentRound, totalRounds, players, currentDrawerIndex, scores, currentTopic, currentWinner } = gameState;
@@ -180,7 +198,7 @@ const endRound = (roomId) => {
         const rankings = getRankings(players, scores);
         const winner = rankings[0];
 
-        deleteGameState(roomId);
+        await deleteGameState(client, roomId);
         console.log(`[GAME] [Room ${roomId}] Game over! Winner: ${winner?.nickname}`);
 
         return {
@@ -190,47 +208,30 @@ const endRound = (roomId) => {
             winner,
             rankings,
         };
-    } else {
-        // 다음 라운드
-        const nextDrawerIndex = (currentDrawerIndex + 1) % players.length;
-
-        gameState.currentRound = currentRound + 1;
-        gameState.currentDrawerIndex = nextDrawerIndex;
-        gameState.currentTopic = '';
-        gameState.currentWinner = null;
-        gameState.phase = GAME_PHASE.DRAWING;
-
-        setGameState(roomId, gameState);
-
-        const nextDrawer = players[nextDrawerIndex];
-        console.log(`[GAME] [Room ${roomId}] Round ${gameState.currentRound} | next drawer: ${nextDrawer.nickname}`);
-
-        return {
-            isGameOver: false,
-            roundResult,
-            nextRound: {
-                currentRound: gameState.currentRound,
-                totalRounds,
-                drawer: nextDrawer,
-            },
-        };
     }
-};
 
-// ─────────────────────────────────────────
-// 순위 계산 Get Rankings
-// ─────────────────────────────────────────
-const getRankings = (players, scores) => {
-    return players
-        .map(player => ({
-            ...player,
-            score: scores[player.id] || 0,
-        }))
-        .sort((a, b) => b.score - a.score)
-        .map((player, index) => ({
-            ...player,
-            rank: index + 1,
-        }));
+    const nextDrawerIndex = (currentDrawerIndex + 1) % players.length;
+
+    gameState.currentRound = currentRound + 1;
+    gameState.currentDrawerIndex = nextDrawerIndex;
+    gameState.currentTopic = '';
+    gameState.currentWinner = null;
+    gameState.phase = GAME_PHASE.DRAWING;
+
+    await setGameState(client, roomId, gameState);
+
+    const nextDrawer = players[nextDrawerIndex];
+    console.log(`[GAME] [Room ${roomId}] Round ${gameState.currentRound} | next drawer: ${nextDrawer.nickname}`);
+
+    return {
+        isGameOver: false,
+        roundResult,
+        nextRound: {
+            currentRound: gameState.currentRound,
+            totalRounds,
+            drawer: nextDrawer,
+        },
+    };
 };
 
 // ─────────────────────────────────────────

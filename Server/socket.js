@@ -5,9 +5,10 @@ const { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, r
 // errorHandling
 const { redisConfig, handleRedisError, emitError } = require('./errorHandler');
 const { cleanupGhostUsers } = require('./sessionCleaner');
-const { startGame, assignTopic, checkAnswer, endRound, startTimer, clearTimer, handlePlayerLeave } = require('./gameManager');
+const { startGame, assignTopic, checkAnswer, endRound, deleteGameState, TIMER_DURATION } = require('./gameManager');
 
 const reconnectionTimers = new Map(); // socketId -> setTimeout 객체
+const roundTimers = new Map(); // roomId → 라운드 타이머 (오케스트레이션 단순화 전까지 socket 측 보관)
 
 // 모듈로 서버를 내보내기 Export server as module
 module.exports = async (server) => {
@@ -59,10 +60,35 @@ module.exports = async (server) => {
     pubClient.connect().catch(() => {});
     subClient.connect().catch(() => {});
 
+    const clearTimer = (roomId) => {
+        const t = roundTimers.get(roomId);
+        if (t) {
+            clearTimeout(t);
+            roundTimers.delete(roomId);
+        }
+    };
+
+    const startTimer = (roomId, onTimeout) => {
+        clearTimer(roomId);
+        roundTimers.set(
+            roomId,
+            setTimeout(() => {
+                Promise.resolve(onTimeout(roomId)).catch((e) => console.error('[TIMER]', e));
+            }, TIMER_DURATION * 1000)
+        );
+    };
+
+    const handlePlayerLeave = async (roomId, _playerId, remainingUsers) => {
+        if (remainingUsers.length === 0) {
+            clearTimer(roomId);
+            await deleteGameState(pubClient, roomId);
+        }
+    };
+
     // 라운드 종료 처리 (타이머 만료 or 모두 정답)
     const handleRoundEnd = async (roomId) => {
         clearTimer(roomId);
-        const result = await endRound(roomId);
+        const result = await endRound(pubClient, roomId);
         if (!result) return;
 
         io.to(roomId).emit('round_end', result.roundResult);
@@ -70,9 +96,10 @@ module.exports = async (server) => {
         if (result.isGameOver) {
             io.to(roomId).emit('game_end', { scores: result.scores, winner: result.winner });
         } else {
+            await new Promise((r) => setTimeout(r, 1500));
             io.to(roomId).emit('next_round', result.nextRound);
 
-            const topicData = await assignTopic(roomId);
+            const topicData = await assignTopic(pubClient, roomId);
             if (topicData) {
                 const { topic, currentRound, totalRounds, drawer } = topicData;
                 io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
@@ -136,10 +163,10 @@ module.exports = async (server) => {
                     if (isStarted) {
                         console.log(`[SYSTEM] room ${roomId} is now ready to start!`);
 
-                        const gameData = await startGame(roomId, users);
+                        const gameData = await startGame(pubClient, roomId, users);
                         io.to(roomId).emit('game_started', gameData);
 
-                        const topicData = await assignTopic(roomId);
+                        const topicData = await assignTopic(pubClient, roomId);
                         if (topicData) {
                             const { topic, currentRound, totalRounds, drawer } = topicData;
                             io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
@@ -159,11 +186,13 @@ module.exports = async (server) => {
 
         // 채팅 로직 Chat logic
         // 유저가 메시지를 보냈을 때 실행됩니다. When a user sends a message, this runs.
-        socket.on('send_chat', async (msg) => {
+        socket.on('send_chat', async (payload) => {
             try {
                 const roomId = socket.currentRoom;
                 const nickname = socket.nickname;
                 const now = Date.now();
+                const message = typeof payload === 'string' ? payload : (payload?.message ?? '');
+                const inAnswer = typeof payload === 'string' ? false : Boolean(payload?.inAnswer);
 
                 // 간단한 스팸 방지 로직 (300ms 이상 간격을 두고 메시지 전송)
                 if (socket.lastChatTime && now - socket.lastChatTime < 300) {
@@ -172,16 +201,16 @@ module.exports = async (server) => {
                 }
                 socket.lastChatTime = now;
 
-                if (roomId && msg.trim()) {
+                if (roomId && message.trim()) {
                     io.to(roomId).emit('receive_chat', {
                         sender: nickname,
-                        message: msg,
+                        message,
                         timestamp: now
                     });
-                    console.log(`[CHAT][${roomId}] ${nickname}: ${msg}`);
+                    console.log(`[CHAT][${roomId}] ${nickname}: ${message}`);
 
                     // 정답 확인 → 정답 즉시 라운드 종료
-                    const answerResult = await checkAnswer(roomId, socket.id, msg);
+                    const answerResult = await checkAnswer(pubClient, roomId, socket.id, message, inAnswer);
                     if (answerResult?.isCorrect) {
                         io.to(roomId).emit('correct_answer', {
                             nickname: answerResult.player.nickname,
