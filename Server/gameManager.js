@@ -79,6 +79,7 @@ const startGame = async (client, roomId, users) => {
 
 /**
  * 현재 라운드 주제 랜덤 배정
+ * 비활성(isDisconnected) 플레이어는 출제자에서 스킵
  * @returns {object|null} { topic, currentRound, totalRounds, drawer }
  */
 const assignTopic = async (client, roomId) => {
@@ -92,9 +93,13 @@ const assignTopic = async (client, roomId) => {
     gameState.currentWinner = null;
     gameState.usedTopics = [...usedTopics, topic];
 
+    // 비활성 플레이어 스킵: 활성 플레이어 중에서 출제자 선정
+    const activePlayers = gameState.players.filter(p => !p.isDisconnected);
+    const drawer = activePlayers[gameState.currentDrawerIndex % activePlayers.length]
+        || gameState.players[gameState.currentDrawerIndex]; // 활성 플레이어 없으면 기존 방식
+
     await setGameState(client, roomId, gameState);
 
-    const drawer = gameState.players[gameState.currentDrawerIndex];
     console.log(`[GAME] [Room ${roomId}] Round ${gameState.currentRound} topic: ${topic} | drawer: ${drawer.nickname}`);
 
     return {
@@ -115,10 +120,13 @@ const assignTopic = async (client, roomId) => {
  * @param {string} roomId
  * @param {string} playerId
  * @param {string} message
+ * @param {boolean} inAnswer - 정답 버튼을 누르고 보낸 채팅인지 여부
  * @returns {object} { isCorrect, player, point, scores, allCorrect }
  */
 const checkAnswer = async (client, roomId, playerId, message, inAnswer = false) => {
+    // 정답 버튼을 누르지 않은 일반 채팅은 정답 판정 안 함
     if (!inAnswer) return null;
+
     const gameState = await getGameState(client, roomId);
     if (!gameState) return null;
 
@@ -162,8 +170,9 @@ const checkAnswer = async (client, roomId, playerId, message, inAnswer = false) 
 
 /**
  * 라운드 종료 처리 (정답자 발생 or 타이머 종료)
+ * 비활성(isDisconnected) 플레이어는 다음 출제자 선정 시 스킵
  * @param {string} roomId
- * @returns {object} { isGameOver, roundResult, nextRound?, scores?, winner?, rankings? }
+ * @returns {object} { isGameOver, roundResult, nextRound?, scores?, winner?, rankings?, roomResetNeeded? }
  */
 const getRankings = (players, scores) =>
     players
@@ -207,11 +216,20 @@ const endRound = async (client, roomId) => {
             scores,
             winner,
             rankings,
-            roomResetNeeded: true,
+            roomResetNeeded: true,  // room_* lifecycle 동기화 신호
         };
     }
 
-    const nextDrawerIndex = (currentDrawerIndex + 1) % players.length;
+    // 다음 출제자 선정 시 비활성 플레이어 스킵
+    const activePlayers = players.filter(p => !p.isDisconnected);
+    let nextDrawerIndex = (currentDrawerIndex + 1) % players.length;
+
+    // 비활성 플레이어면 다음 활성 플레이어 찾기
+    let loopCount = 0;
+    while (players[nextDrawerIndex]?.isDisconnected && loopCount < players.length) {
+        nextDrawerIndex = (nextDrawerIndex + 1) % players.length;
+        loopCount++;
+    }
 
     gameState.currentRound = currentRound + 1;
     gameState.currentDrawerIndex = nextDrawerIndex;
