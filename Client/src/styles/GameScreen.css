@@ -164,7 +164,7 @@
 
 .answer-message {
 
-  color: #ff4d6d;
+  color: #4dfcff;
 
   font-weight: bold;
 }
@@ -201,11 +201,27 @@
 
   font-weight: bold;
 
-  background-color: rgba(255, 0, 119, 0.293);
+  background-color: rgba(0, 255, 242, 0.293);
 
   border-radius: 20px;
 
   padding: 2px 5px;
+}
+
+.wrong-message {
+  color: #000000;
+
+  background-color: rgba(255, 0, 0, 0.453);
+
+  border: 3px solid rgb(255, 0, 0);
+
+  border-radius: 20px;
+
+  padding: 2px 2px;
+
+  opacity: 0.9;
+
+  animation: wrongShake 0.35s ease;
 }
 
 /* 가이드 */
