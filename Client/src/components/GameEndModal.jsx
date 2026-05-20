@@ -17,22 +17,22 @@ function GameEndModal({ gameEndData }) {
     <div
       className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
       style={{
-        backgroundColor: "rgba(0,0,0,0.5)",
-        zIndex: 5000
+        backgroundColor: "rgba(0,0,0,0.3)",
+        zIndex: 3000
       }}
     >
 
       <div
-        className="bg-white p-4 d-flex flex-column align-items-center"
+        className="bg-white border border-dark d-flex flex-column justify-content-center align-items-center p-5"
         style={{
-          width: "600px",
-          borderRadius: "30px"
+          width: "450px",
+          borderRadius: "40px"
         }}
       >
 
-        <h1>
+        <h2>
           게임 종료
-        </h1>
+        </h2>
 
         {/* 우승자 */}
         <h3 className="mt-3">
