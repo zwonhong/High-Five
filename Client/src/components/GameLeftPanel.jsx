@@ -1,3 +1,4 @@
+import "../styles/GameLeftPanel.css";
 import { useState } from "react";
 
 import { useSocketStore } from "../stores/useSocketStore";
@@ -152,7 +153,7 @@ function GameLeftPanel() {
 
           <input
             type="text"
-            className="form-control"
+            className="chat-input"
 
             placeholder={
               isAnswerMode

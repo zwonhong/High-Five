@@ -1,3 +1,4 @@
+import "../styles/StartLoadingModal.css";
 function StartLoadingModal() {
 
     return (

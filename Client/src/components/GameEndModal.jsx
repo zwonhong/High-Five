@@ -1,3 +1,4 @@
+import "../styles/GameEndModal.css";
 import { useGamePhaseStore } from "../stores/useGamePhaseStore";
 import { useSocketStore } from "../stores/useSocketStore";
 

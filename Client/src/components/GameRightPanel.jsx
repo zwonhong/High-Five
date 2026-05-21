@@ -1,3 +1,4 @@
+import "../styles/GameRightPanel.css";
 import { useSocketStore } from "../stores/useSocketStore";
 
 function GameRightPanel({ timeLeft }) {

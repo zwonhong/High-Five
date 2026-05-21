@@ -1,3 +1,4 @@
+import "../styles/GameNextRoundtModal.css";
 function GameNextRoundModal({ round }) {
 
     return (

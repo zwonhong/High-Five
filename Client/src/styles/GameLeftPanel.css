@@ -44,25 +44,6 @@
   }
   
   
-  /* 채팅 헤더 
-  
-  .chat-header {
-  
-    width: fit-content;
-  
-    padding:
-      calc(var(--ui-scale) * 0.01)
-      calc(var(--ui-scale) * 0.03);
-  
-    border-radius: var(--radius);
-  
-    background: white;
-  
-    font-size: var(--font-size);
-  }
-  */
-  
-  
   /* 채팅 작성 바 */
   .chat-input-wrapper {
   
@@ -76,9 +57,14 @@
   
     border-radius: var(--radius);
   
-    padding: calc( 5px * var(--scale));
+    padding: calc( 3px * var(--scale));
   
-    gap: calc( 5px * var(--scale));
+    gap: calc( 10px * var(--scale));
+
+    box-sizing: border-box;
+
+    margin-top: auto;
+
   }
   
   .chat-input {
@@ -91,11 +77,14 @@
   
     background: transparent;
   
-    font-size: calc( 5px * var(--scale));
+    font-size: calc( 15px * var(--scale));
   
     padding-left: calc( 8px * var(--scale));
   
     border-radius: var(--radius);
+
+    box-sizing: border-box;
+    
   }
   
   .chat-send-button {

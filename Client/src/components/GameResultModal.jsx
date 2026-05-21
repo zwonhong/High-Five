@@ -1,3 +1,4 @@
+import "../styles/GameResultModal.css";
 import { useEffect } from "react";
 
 function GameResultModal({

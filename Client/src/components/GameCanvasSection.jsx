@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import "../styles/GameCanvasSection.css";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Pencil,

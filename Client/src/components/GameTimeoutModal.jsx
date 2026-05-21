@@ -1,3 +1,4 @@
+import "../styles/GameTimeoutModal.css";
 import { useEffect } from "react";
 
 function GameTimeoutModal({

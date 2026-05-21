@@ -1,3 +1,4 @@
+import "../styles/StartNicknameModal.css";
 import { useSocketStore } from "../stores/useSocketStore";
 
 function StartNicknameModal({
