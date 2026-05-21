@@ -1,29 +1,28 @@
-import { useState } from "react";
+import "../styles/GameLeftPanel.css";
+import { useState, useEffect, useRef } from "react";
 
 import { useSocketStore } from "../stores/useSocketStore";
 import { sendChatMessage } from "../socket/socketActions";
 
 function GameLeftPanel() {
 
+  // 채팅 자동 스크롤
+  const chatMessagesRef = useRef(null);
   // 닉네임
   const nickname = useSocketStore((state) => state.nickname);
   // 채팅 메시지 목록 (서버 수신 + 라운드 구분선)
   const chatList = useSocketStore((state) => state.chatList);
-
   // 현재 입력 중인 채팅
   const [chatInput, setChatInput] = useState("");
-
   // 정답 모드 여부
   // true 상태에서 다음 채팅 1회만 정답 채팅으로 처리
   const [isAnswerMode, setIsAnswerMode] = useState(false);
-
   // 정답 버튼 클릭
   const handleAnswerMode = () => {
 
     setIsAnswerMode(true);
 
   };
-
   // 채팅 전송
   const handleSendMessage = () => {
 
@@ -40,26 +39,6 @@ function GameLeftPanel() {
     setChatInput("");
   };
 
-  /* 
-  socket.on("wrong_message", ({ messageId }) => {
-
-  setMessages((prev) =>
-
-    prev.map((msg) =>
-
-      msg.id === messageId
-        ? {
-            ...msg,
-            isWrong: true
-          }
-        : msg
-
-    )
-
-  );
-
-}); 
-*/
   const handleKeyDown = (e) => {
 
     // 한글 입력 채팅 error처리용
@@ -72,9 +51,25 @@ function GameLeftPanel() {
     }
   };
 
+  useEffect(() => {
+
+    const chatBox = chatMessagesRef.current;
+
+    if (!chatBox) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+    });
+
+  }, [chatList]);
+
   return (
 
-    <div className="left-panel">
+    <div className="left-panel mobile-chat-area">
 
       {/* 사용자 정보 */}
       <div className="info-box common-box">
@@ -101,7 +96,10 @@ function GameLeftPanel() {
         </button>
 
         {/* 채팅 목록 */}
-        <div className="chat-messages">
+        <div
+          className="chat-messages"
+          ref={chatMessagesRef}
+        >
 
           {
             chatList.map((message, index) => {
@@ -121,18 +119,22 @@ function GameLeftPanel() {
                 );
               }
 
+              const isMine = message.sender === nickname;
+
               return (
 
                 <div
                   key={index}
-                  className={
-                    message.type === "answer"
-                      ? `answer-message ${message.isWrong ? "wrong-message" : ""}`
-                      : "normal-message"
-                  }
+                  className={`message-row ${isMine ? "my-message-row" : "other-message-row"}`}
                 >
 
-                  <div>
+                  <div
+                    className={
+                      message.type === "answer"
+                        ? `answer-message ${message.isWrong ? "wrong-message" : ""}`
+                        : "normal-message"
+                    }
+                  >
 
                     <strong>{message.sender}</strong>
                     : {message.message}
@@ -152,7 +154,7 @@ function GameLeftPanel() {
 
           <input
             type="text"
-            className="form-control"
+            className="chat-input"
 
             placeholder={
               isAnswerMode
@@ -164,7 +166,7 @@ function GameLeftPanel() {
 
             onChange={(e) => setChatInput(e.target.value)}
 
-            onKeyDown={handleKeyDown}
+            onKe yDown={handleKeyDown}
           />
 
           {/* 전송 버튼 */}
@@ -176,13 +178,6 @@ function GameLeftPanel() {
           </button>
 
         </div>
-
-      </div>
-
-      {/* 가이드 */}
-      <div className="guide-box common-box">
-
-        <h5>가이드 그림</h5>
 
       </div>
 
