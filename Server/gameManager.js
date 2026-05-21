@@ -16,6 +16,18 @@ const GAME_PHASE = Object.freeze({
 const MAX_ROUNDS = 5;
 const TIMER_DURATION = 60;
 
+/** 라운드 종료 시각(roundEndsAt) 기준 남은 초 — 모든 클라이언트·재연결 동일 기준 */
+const getTimeLeft = (gameState) => {
+    if (gameState?.roundEndsAt) {
+        return Math.max(0, Math.ceil((gameState.roundEndsAt - Date.now()) / 1000));
+    }
+    if (gameState?.roundStartedAt) {
+        const elapsed = Math.floor((Date.now() - gameState.roundStartedAt) / 1000);
+        return Math.max(0, TIMER_DURATION - elapsed);
+    }
+    return TIMER_DURATION;
+};
+
 // ─────────────────────────────────────────
 // 게임 상태 인메모리 저장소
 // Game State In-Memory Store
@@ -68,6 +80,7 @@ const startGame = async (client, roomId, users) => {
         currentWinner: null,
         usedTopics: [],
         currentStrokes: [],     // 이슈 8: 라운드별 스트로크 저장
+        chatLog: [],            // 이슈 8: 게임 중 채팅 (재연결 복구용)
     };
 
     users.forEach((user) => {
@@ -105,6 +118,10 @@ const assignTopic = async (client, roomId) => {
     gameState.currentTopic = topic;
     gameState.currentWinner = null;
     gameState.usedTopics = [...usedTopics, topic];
+    gameState.currentStrokes = [];
+    const now = Date.now();
+    gameState.roundStartedAt = now;
+    gameState.roundEndsAt = now + TIMER_DURATION * 1000;
 
     let drawer = gameState.players[gameState.currentDrawerIndex];
     if (drawer?.isDisconnected) {
@@ -121,6 +138,8 @@ const assignTopic = async (client, roomId) => {
         currentRound: gameState.currentRound,
         totalRounds: gameState.totalRounds,
         drawer,
+        timeLeft: getTimeLeft(gameState),
+        roundEndsAt: gameState.roundEndsAt,
     };
 };
 
@@ -208,6 +227,66 @@ const getStrokes = async (client, roomId) => {
     const gameState = await getGameState(client, roomId);
     if (!gameState) return [];
     return gameState.currentStrokes || [];
+};
+
+const clearCurrentStrokes = async (client, roomId) => {
+    const gameState = await getGameState(client, roomId);
+    if (!gameState) return;
+
+    gameState.currentStrokes = [];
+    await setGameState(client, roomId, gameState);
+};
+
+const popLastStroke = async (client, roomId) => {
+    const gameState = await getGameState(client, roomId);
+    if (!gameState?.currentStrokes?.length) return;
+
+    gameState.currentStrokes.pop();
+    await setGameState(client, roomId, gameState);
+};
+
+const removeStrokesByIds = async (client, roomId, strokeIds) => {
+    const gameState = await getGameState(client, roomId);
+    if (!gameState?.currentStrokes?.length) return;
+
+    const idSet = new Set(strokeIds);
+    gameState.currentStrokes = gameState.currentStrokes.filter((s) => !idSet.has(s.id));
+    await setGameState(client, roomId, gameState);
+};
+
+const addChatLog = async (client, roomId, entry) => {
+    const gameState = await getGameState(client, roomId);
+    if (!gameState) return;
+
+    if (!gameState.chatLog) gameState.chatLog = [];
+    gameState.chatLog.push(entry);
+    await setGameState(client, roomId, gameState);
+};
+
+/**
+ * 재연결 시 클라이언트 UI 복구용 스냅샷 (reactivatePlayer 이후 호출)
+ */
+const getReconnectSnapshot = async (client, roomId, playerId) => {
+    const gameState = await getGameState(client, roomId);
+    if (!gameState) {
+        return { strokes: [], chatLog: [] };
+    }
+
+    const drawer = gameState.players[gameState.currentDrawerIndex];
+    const isDrawer = drawer?.id === playerId;
+
+    return {
+        strokes: gameState.currentStrokes || [],
+        chatLog: gameState.chatLog || [],
+        currentRound: gameState.currentRound,
+        totalRounds: gameState.totalRounds,
+        drawer: drawer ? { id: drawer.id, nickname: drawer.nickname } : null,
+        canDraw: isDrawer,
+        topic: isDrawer ? gameState.currentTopic : '',
+        scores: gameState.scores || {},
+        timeLeft: getTimeLeft(gameState),
+        roundEndsAt: gameState.roundEndsAt ?? null,
+    };
 };
 
 // ─────────────────────────────────────────
@@ -305,21 +384,9 @@ const markPlayerInactive = async (client, roomId, playerId) => {
 
     player.isDisconnected = true;
 
-    let needsRoundRefresh = false;
-    if (gameState.phase === GAME_PHASE.DRAWING) {
-        const drawer = gameState.players[gameState.currentDrawerIndex];
-        if (drawer?.id === playerId) {
-            const next = advanceToNextActiveDrawer(gameState);
-            if (next) {
-                needsRoundRefresh = true;
-                gameState.currentTopic = '';
-                gameState.currentWinner = null;
-            }
-        }
-    }
-
+    // 출제자 일시 끊김: 10초 유예 동안 라운드·캔버스 유지 (제거 시 removePlayerFromGame에서 처리)
     await setGameState(client, roomId, gameState);
-    return { needsRoundRefresh };
+    return { needsRoundRefresh: false };
 };
 
 const removePlayerFromGame = async (client, roomId, playerId) => {
@@ -354,6 +421,7 @@ const removePlayerFromGame = async (client, roomId, playerId) => {
             needsRoundRefresh = true;
             gameState.currentTopic = '';
             gameState.currentWinner = null;
+            gameState.currentStrokes = [];
         }
     }
 
@@ -383,6 +451,7 @@ module.exports = {
     GAME_PHASE,
     MAX_ROUNDS,
     TIMER_DURATION,
+    getTimeLeft,
     startGame,
     assignTopic,
     checkAnswer,
@@ -394,4 +463,9 @@ module.exports = {
     reactivatePlayer,
     addStroke,
     getStrokes,
+    clearCurrentStrokes,
+    popLastStroke,
+    removeStrokesByIds,
+    addChatLog,
+    getReconnectSnapshot,
 };
