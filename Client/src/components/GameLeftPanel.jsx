@@ -1,10 +1,14 @@
 import { useState } from "react";
 
-function GameLeftPanel({
-  nickname,
-  messages,
-  setMessages
-}) {
+import { useSocketStore } from "../stores/useSocketStore";
+import { sendChatMessage } from "../socket/socketActions";
+
+function GameLeftPanel() {
+
+  // 닉네임
+  const nickname = useSocketStore((state) => state.nickname);
+  // 채팅 메시지 목록 (서버 수신 + 라운드 구분선)
+  const chatList = useSocketStore((state) => state.chatList);
 
   // 현재 입력 중인 채팅
   const [chatInput, setChatInput] = useState("");
@@ -23,98 +27,16 @@ function GameLeftPanel({
   // 채팅 전송
   const handleSendMessage = () => {
 
-    // 공백 입력 방지
-    if (!chatInput.trim()) {
+    const success = sendChatMessage(chatInput, isAnswerMode);
+
+    if (!success) {
       return;
     }
 
-    // 일반 채팅 전송
-    if (!isAnswerMode) {
-
-      console.log("일반 채팅 전송");
-
-      /* 
-      socket.emit("chat_message", {
-         type: "normal",
-         message: chatInput
-      });
-      */
-      // 임시 테스트용
-      setMessages((prev) => [
-
-        ...prev,
-
-        {
-          user: nickname,
-          text: chatInput,
-          type: "normal"
-        }
-
-      ]);
-
-    }
-
-    // 정답 채팅 전송
-    else {
-
-      console.log("정답 채팅 전송");
-
-      // 메시지 고유 id
-      const messageId = Date.now();
-
-      const answerMessage = {
-        id: messageId,
-        user: nickname,
-        text: chatInput,
-        type: "answer",
-        isWrong: false
-      };
-
-      /*
-      socket.emit("chat_message", {
-        id: messageId,
-        type: "answer",
-        message: chatInput
-      });
-      */
-
-      // 임시 UI 테스트용
-      setMessages((prev) => [
-
-        ...prev,
-        answerMessage
-
-      ]);
-
-      // 임시 wrong_answer 테스트
-      // 1초 후 틀린 답 처리
-
-      setTimeout(() => {
-
-        console.log("wrong_answer 수신");
-
-        setMessages((prev) =>
-
-          prev.map((msg) =>
-
-            msg.id === messageId
-              ? {
-                ...msg,
-                isWrong: true
-              }
-              : msg
-
-          )
-
-        );
-
-      }, 1000);
-
-      // 정답모드는 1회만 유지
+    if (isAnswerMode) {
       setIsAnswerMode(false);
     }
 
-    // 입력창 초기화
     setChatInput("");
   };
 
@@ -182,7 +104,7 @@ function GameLeftPanel({
         <div className="chat-messages">
 
           {
-            messages.map((message, index) => {
+            chatList.map((message, index) => {
 
               // ROUND 구분선
               if (message.type === "round") {
@@ -212,8 +134,8 @@ function GameLeftPanel({
 
                   <div>
 
-                    <strong>{message.user}</strong>
-                    : {message.text}
+                    <strong>{message.sender}</strong>
+                    : {message.message}
 
                   </div>
 

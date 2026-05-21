@@ -1,31 +1,22 @@
 import "./styles/common.css"
 
-import { useState } from "react";
-
 import StartScreen from "./components/StartScreen";
 import GameScreen from "./components/GameScreen";
+import { useGamePhaseStore, GAME_PHASE } from "./stores/useGamePhaseStore";
+import { useSocketEvents } from "./hooks/useSocketEvents";
 
 function App() {
 
-  const [gameStarted, setGameStarted] = useState(false);
-  const [nickname, setNickname] = useState("");
+  useSocketEvents();
+
+  const gamePhase = useGamePhaseStore((state) => state.gamePhase);
 
   return (
     <>
       {
-        gameStarted
-          ? (
-            <GameScreen
-              nickname={nickname}
-              setGameStarted={setGameStarted}
-            />
-          ) : (
-            <StartScreen
-              setGameStarted={setGameStarted}
-              nickname={nickname}
-              setNickname={setNickname}
-            />
-          )
+        gamePhase === GAME_PHASE.PLAYING
+          ? <GameScreen />
+          : <StartScreen />
       }
     </>
   );

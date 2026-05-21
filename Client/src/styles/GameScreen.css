@@ -28,6 +28,340 @@
 }
 
 
+/* LEFT PANEL */
+
+.left-panel {
+
+  width: var(--left-width);
+
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--inner-gap);
+}
+
+
+/* 내 정보 */
+
+.info-box {
+
+  width: 100%;
+
+  height: calc(var(--ui-scale) * 0.12);
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+}
+
+
+/* 채팅 */
+
+.chat-box {
+
+  width: 100%;
+
+  height: calc(var(--ui-scale) * 0.5);
+
+  display: flex;
+
+  flex-direction: column;
+
+  padding: calc(var(--ui-scale) * 0.02);
+
+  gap: calc(var(--ui-scale) * 0.02);
+}
+
+
+/* 채팅 헤더 
+
+.chat-header {
+
+  width: fit-content;
+
+  padding:
+    calc(var(--ui-scale) * 0.01)
+    calc(var(--ui-scale) * 0.03);
+
+  border-radius: var(--radius);
+
+  background: white;
+
+  font-size: var(--font-size);
+}
+*/
+
+
+/* 채팅 작성 바 */
+.chat-input-wrapper {
+
+  display: flex;
+
+  align-items: center;
+
+  width: 100%;
+
+  background: white;
+
+  border-radius: var(--radius);
+
+  padding: calc( 5px * var(--scale));
+
+  gap: calc( 5px * var(--scale));
+}
+
+.chat-input {
+
+  flex: 1;
+
+  border: none;
+
+  outline: none;
+
+  background: transparent;
+
+  font-size: calc( 5px * var(--scale));
+
+  padding-left: calc( 8px * var(--scale));
+
+  border-radius: var(--radius);
+}
+
+.chat-send-button {
+
+  width: calc(30px * var(--scale));
+  height: calc(30px * var(--scale));
+
+  border: none;
+
+  border-radius: var(--radius);
+
+  background: #5edfff;
+
+  cursor: pointer;
+
+  font-size: calc(18px * var(--scale));
+
+  transition: 0.1s;
+
+  flex-shrink: 0;
+}
+
+.chat-send-button:hover {
+
+  background: #37d2ff;
+
+  transform: translateY(-0.5px);
+}
+
+.chat-send-button:active {
+
+  transform: scale(0.95);
+}
+
+/* 채팅 메시지 */
+
+.answer-message {
+
+  color: #ff4d6d;
+
+  font-weight: bold;
+}
+
+.round-divider {
+
+  width: 100%;
+
+  text-align: center;
+
+  margin: 3px 0;
+
+  font-weight: bold;
+
+  color: #666;
+}
+
+.chat-messages {
+
+  flex: 1;
+
+  overflow-y: auto;
+  
+}
+
+.normal-message {
+
+  color: black;
+}
+
+.answer-message {
+
+  color: #000000;
+
+  font-weight: bold;
+
+  background-color: rgba(255, 0, 119, 0.293);
+
+  border-radius: 20px;
+
+  padding: 2px 5px;
+}
+
+/* 가이드 */
+
+.guide-box {
+
+  width: 100%;
+
+  flex: 1;
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+}
+
+
+/* CENTER */
+
+.canvas-section {
+
+  width: var(--ui-scale);
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: var(--inner-gap);
+}
+
+
+/* 주제 */
+
+.topic-box {
+
+  width: 100%;
+
+  height: calc(var(--ui-scale) * 0.1);
+
+  padding: 0 calc(var(--ui-scale) * 0.03);
+
+  display: flex;
+
+  align-items: center;
+}
+
+
+/* 캔버스 */
+
+.canvas-box {
+
+  width: 100%;
+
+  aspect-ratio: 1 / 1;
+
+  background-color: #f8f9fa;
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  font-size: calc(var(--font-size) * 1.5px);
+}
+
+
+/* 툴바 */
+
+.toolbar {
+
+  width: 100%;
+
+  height: calc(var(--ui-scale) * 0.12);
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  gap: calc(var(--ui-scale) * 0.02);
+
+  padding: calc(var(--ui-scale) * 0.015);
+
+  background: rgba(255, 255, 255, 0.7);
+
+  border-radius: calc(var(--ui-scale) * 0.03);
+
+  backdrop-filter: blur(8px);
+
+  box-shadow:
+    0 calc(4px * var(--scale))
+    calc(12px * var(--scale))
+    rgba(0,0,0,0.12);
+}
+
+
+/* 툴바 버튼 */
+
+.tool-button {
+
+  width: calc(var(--ui-scale) * 0.08);
+  height: calc(var(--ui-scale) * 0.08);
+
+  border: none;
+
+  border-radius: calc(var(--ui-scale) * 0.02);
+
+  background: white;
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  cursor: pointer;
+
+  font-size: calc(var(--ui-scale) * 0.03);
+
+  transition:
+    transform 0.12s ease,
+    background 0.12s ease,
+    box-shadow 0.12s ease;
+
+  box-shadow:
+    0 calc(2px * var(--scale))
+    calc(6px * var(--scale))
+    rgba(0,0,0,0.1);
+}
+
+
+/* hover */
+
+.tool-button:hover {
+
+  background: #d4d4d4;
+
+  transform: translateY(calc(-2px * var(--scale)));
+
+  box-shadow:
+    0 calc(5px * var(--scale))
+    calc(14px * var(--scale))
+    rgba(0,0,0,0.15);
+}
+
+.tool-button.blue:hover {
+
+  background: #c8ccff;
+}
+
+.tool-button.red:hover {
+
+  background: #fed0d0;
+}
+
+
 
 /* RIGHT PANEL */
 
