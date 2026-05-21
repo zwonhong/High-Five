@@ -11,38 +11,38 @@ function GameRightPanel({ timeLeft }) {
 
   return (
 
-    <div className="right-panel">
-
+    <div className="right-panel mobile-user-area">
+  
       {/* 유저 목록 */}
       <div className="user-list">
-
+  
         {
           users.map((user) => (
-
+  
             <div
               key={user.id}
-
+  
               className={`
                 user-box
                 common-box
                 ${user.isDisconnected ? "disconnected-user" : ""}
               `}
             >
-
+  
               {/* 출제자 */}
               <div className="user-info">
-
+  
                 {
                   drawer?.id === user.id &&
                   <span className="drawer-icon">
                     ✏️
                   </span>
                 }
-
+  
                 <span className="user-nickname">
                   {user.nickname}
                 </span>
-
+  
                 {
                   user.isDisconnected && (
                     <span className="disconnect-text">
@@ -50,34 +50,34 @@ function GameRightPanel({ timeLeft }) {
                     </span>
                   )
                 }
-
+  
               </div>
-
+  
               {/* 점수 */}
               <span className="user-score">
-
+  
                 {scores[user.id] ?? 0}점
-
+  
               </span>
-
+  
             </div>
-
+  
           ))
         }
-
+  
+        {/* timer를 user-list 안으로 이동 */}
+        <div className="timer-box common-box">
+  
+          <h3 className="timer-text">
+            ⏰ {timeLeft}
+          </h3>
+  
+        </div>
+  
       </div>
-
-      {/* 타이머 */}
-      <div className="timer-box common-box">
-
-        <h3 className="timer-text">
-          ⏰ {timeLeft}
-        </h3>
-
-      </div>
-
+  
     </div>
-
+  
   );
 }
 

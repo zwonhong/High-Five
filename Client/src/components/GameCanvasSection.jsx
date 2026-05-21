@@ -203,6 +203,126 @@ function GameCanvasSection({
     setCurrentStroke(null);
   };
 
+  /* Touch Event(모바일 웹 용) */
+
+const getTouchPosition = (touch) => {
+
+  const canvas = canvasRef.current;
+
+  const rect = canvas.getBoundingClientRect();
+
+  return {
+
+    x: (touch.clientX - rect.left) * (canvas.width / rect.width),
+
+    y: (touch.clientY - rect.top) * (canvas.height / rect.height)
+
+  };
+
+};
+
+
+const handleTouchStart = (e) => {
+
+  e.preventDefault();
+
+  if (!isDrawer) {
+    return;
+  }
+
+  const touch = e.touches[0];
+
+  const pos = getTouchPosition(touch);
+
+  if (currentTool === "eraser") {
+
+    eraseStroke(pos);
+
+    return;
+  }
+
+  setIsDrawing(true);
+
+  setCurrentStroke({
+
+    points: [pos],
+
+    color: currentColor,
+
+    width: PEN_WIDTH,
+
+    tool: "pen"
+
+  });
+
+};
+
+
+const handleTouchMove = (e) => {
+
+  e.preventDefault();
+
+  if (!isDrawing) {
+    return;
+  }
+
+  const touch = e.touches[0];
+
+  const newPoint = getTouchPosition(touch);
+
+  setCurrentStroke((prev) => {
+
+    const updatedStroke = {
+
+      ...prev,
+
+      points: [
+
+        ...prev.points,
+
+        newPoint
+
+      ]
+
+    };
+
+    redrawCanvas(updatedStroke);
+
+    return updatedStroke;
+
+  });
+
+};
+
+
+const handleTouchEnd = () => {
+
+  if (!isDrawing || !currentStroke) {
+    return;
+  }
+
+  setIsDrawing(false);
+
+  const newStroke = {
+
+    id: Date.now(),
+
+    ...currentStroke
+
+  };
+
+  setStrokes((prev) => [
+
+    ...prev,
+
+    newStroke
+
+  ]);
+
+  setCurrentStroke(null);
+
+};
+
   // canvas 다시 그리기
   const redrawCanvas = (tempStroke = null) => {
 
@@ -302,7 +422,7 @@ function GameCanvasSection({
   };
 
   return (
-    <div className="canvas-section">
+    <div className="canvas-section mobile-canvas-area">
 
       {/* 주제 (출제자에게만 표시) */}
       <div className="topic-box common-box">
@@ -322,19 +442,17 @@ function GameCanvasSection({
           ref={canvasRef}
 
           width={600}
-
           height={400}
 
           className={`
             game-canvas
-            ${
-              currentTool === "eraser"
-                ? "cursor-eraser"
-                : (
-                  isDrawer
-                    ? "cursor-draw"
-                    : "cursor-disabled"
-                )
+            ${currentTool === "eraser"
+              ? "cursor-eraser"
+              : (
+                isDrawer
+                  ? "cursor-draw"
+                  : "cursor-disabled"
+              )
             }
           `}
 
@@ -342,6 +460,11 @@ function GameCanvasSection({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+
+          // 모바일 캔버스 구현
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         />
 
       </div>
@@ -359,7 +482,7 @@ function GameCanvasSection({
           }}
         >
           <Pencil
-            size={24}
+            className="tool-icon"
             strokeWidth={1.5}
           />
         </button>
@@ -375,7 +498,7 @@ function GameCanvasSection({
           }}
         >
           <Pencil
-            size={24}
+            className="tool-icon"
             color="blue"
             strokeWidth={1.5}
           />
@@ -392,7 +515,7 @@ function GameCanvasSection({
           }}
         >
           <Pencil
-            size={24}
+            className="tool-icon"
             color="red"
             strokeWidth={1.5}
           />
@@ -403,7 +526,7 @@ function GameCanvasSection({
           onClick={() => setCurrentTool("eraser")}
         >
           <Eraser
-            size={24}
+            className="tool-icon"
             strokeWidth={1.5}
           />
         </button>
@@ -413,7 +536,7 @@ function GameCanvasSection({
           onClick={handleUndo}
         >
           <Undo2
-            size={24}
+            className="tool-icon"
             strokeWidth={1.5}
           />
         </button>

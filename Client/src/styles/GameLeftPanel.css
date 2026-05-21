@@ -3,8 +3,11 @@
 .left-panel {
 
     width: var(--left-width);
-  
+
+    min-width: 0;
+
     display: flex;
+    
     flex-direction: column;
   
     gap: var(--inner-gap);
@@ -31,6 +34,8 @@
   .chat-box {
   
     width: 100%;
+
+    min-width: 0;
   
     height: calc(var(--ui-scale) * 0.5);
   
@@ -143,18 +148,51 @@
   
     color: #666;
   }
+
+  .message-row {
+
+    display: flex;
+  
+    width: 100%;
+  
+    margin-bottom: 6px;
+  }
+  
+  /* 내 채팅 */
+  .my-message-row {
+  
+    justify-content: flex-end;
+  }
+  
+  /* 상대 채팅 */
+  .other-message-row {
+  
+    justify-content: flex-start;
+  }
   
   .chat-messages {
   
     flex: 1;
   
     overflow-y: auto;
+
+    scroll-behavior: smooth;
     
   }
   
   .normal-message {
-  
+
     color: black;
+  
+    background: #fffca7ac;
+  
+    padding: 4px 10px;
+  
+    border-radius: 25px;
+  
+    max-width: 80%;
+  
+    word-break: break-word;
   }
   
   .answer-message {
@@ -199,3 +237,148 @@
     justify-content: center;
     align-items: center;
   }
+
+/* 태블릿 */
+@media (max-width: 992px) {
+
+  .left-panel {
+
+    width: 100%;
+    
+  }
+
+  .info-box {
+
+    min-height: 70px;
+  }
+
+  .chat-box {
+
+    min-height: 400px;
+  }
+
+  .chat-input {
+
+    font-size: 16px;
+  }
+
+  .chat-send-button {
+
+    width: 36px;
+    height: 36px;
+
+    font-size: 18px;
+  }
+
+  .guide-box {
+
+    min-height: 120px;
+  }
+
+}
+
+/* 모바일 */
+@media (max-width: 576px) {
+
+  .left-panel {
+
+    width: 100%;
+
+    min-width: 0;
+
+    display: contents;
+  }
+
+  .info-box {
+
+    display: none;
+
+  }
+
+  .chat-box {
+
+    grid-area: chat;
+
+    height: auto;
+
+    min-height: 180px;
+
+    max-height: 180px;
+
+    padding: 12px;
+
+    gap: 8px;
+
+    overflow: hidden;
+
+    box-sizing: border-box;
+  }
+
+  .chat-messages {
+
+    flex: 1;
+
+    min-height: 0;
+
+    overflow-y: auto;
+
+    overflow-x: hidden;
+  }
+
+  .chat-input-wrapper {
+
+    padding: 6px;
+
+    gap: 8px;
+
+    margin-top: auto;
+
+    flex-shrink: 0;
+  }
+
+  .chat-input {
+
+    font-size: 14px;
+
+    padding-left: 6px;
+  }
+
+  .chat-send-button {
+
+    width: 25px;
+    height: 25px;
+
+    font-size: 16px;
+  }
+
+  .round-divider {
+
+    font-size: 13px;
+  }
+
+  .normal-message,
+  .answer-message,
+  .wrong-message {
+
+    font-size: 14px;
+
+    word-break: break-word;
+  }
+
+  .answer-message {
+
+    border-radius: 14px;
+
+    padding: 3px 6px;
+  }
+
+  .wrong-message {
+
+    border-width: 2px;
+
+    border-radius: 14px;
+
+    padding: 3px 6px;
+  }
+
+}

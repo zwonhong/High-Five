@@ -125,6 +125,14 @@
     calc(12px * var(--scale))
     rgba(0,0,0,0.12);
 }
+
+.tool-icon {
+
+  width: 24px;
+
+  height: 24px;
+}
+
 /* 툴바 버튼 */
 .tool-button {
 
@@ -188,14 +196,31 @@
   background: #fed0d0;
 }
 
+/* 모바일 터치용 hover 효과 */
+.tool-button:active {
+
+  background: #d4d4d4;
+
+  transform: scale(0.95);
+
+  box-shadow:
+    0 calc(2px * var(--scale))
+    calc(6px * var(--scale))
+    rgba(0,0,0,0.15);
+}
+
+.tool-button.blue:active {
+
+  background: #c8ccff;
+}
+
+.tool-button.red:active {
+
+  background: #fed0d0;
+}
 
 /* 태블릿 */
 @media (max-width: 992px) {
-
-  .canvas-section {
-
-    width: 100%;
-  }
 
   .toolbar {
 
@@ -216,7 +241,17 @@
 
   .canvas-section {
 
-    width: 100%;
+    grid-area: canvas;
+
+    max-height: 45vh;
+
+    aspect-ratio: 1 / 1;
+
+  }
+
+  .canvas-box {
+
+    max-height: 55vh;
   }
 
   .topic-box {
@@ -226,22 +261,38 @@
     font-size: 14px;
 
     padding: 0 12px;
+
+    grid-area: topic;
   }
 
   .toolbar {
 
-    gap: 10px;
+    gap: 6px;
 
-    padding: 12px;
+    padding: 4px 6px;
   }
 
   .tool-button {
 
-    width: 48px;
+    width: 36px !important;
 
-    height: 48px;
+    height: 36px !important;
 
-    font-size: 18px;
+    min-width: 36px !important;
+
+    min-height: 36px !important;
+
+    padding: 0 !important;
+
+    border-radius: 10px;
   }
+
+  .tool-icon {
+
+    width: 16px;
+
+    height: 16px;
+  }
+
 
 }

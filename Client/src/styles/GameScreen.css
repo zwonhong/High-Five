@@ -26,3 +26,76 @@
 
   box-sizing: border-box;
 }
+
+/* 태블릿 */
+@media (max-width: 992px) {
+
+  .game-wrapper {
+
+    align-items: flex-start;
+
+    padding: 20px 0;
+
+    overflow-y: auto;
+  }
+
+  .game-layout {
+
+    width: 100%;
+
+    grid-template-columns:
+      1fr
+      1.4fr
+      1fr;
+
+    column-gap: 16px;
+
+    padding: 16px;
+  }
+
+}
+
+/* 모바일 */
+@media (max-width: 576px) {
+
+  .game-wrapper {
+
+    height: auto;
+
+    min-height: 100vh;
+
+    align-items: flex-start;
+
+    overflow-y: auto;
+
+    padding: 0;
+  }
+
+  .game-layout {
+
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    grid-template-areas:
+
+      "chat chat"
+
+      "topic timer"
+
+      "canvas canvas"
+
+      "userinfo userinfo"
+
+      "users users";
+
+    gap: 12px;
+
+    padding: 12px;
+
+    box-sizing: border-box;
+  }
+
+}

@@ -1,11 +1,13 @@
 import "../styles/GameLeftPanel.css";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { useSocketStore } from "../stores/useSocketStore";
 import { sendChatMessage } from "../socket/socketActions";
 
 function GameLeftPanel() {
 
+  // 채팅 자동 스크롤
+  const chatMessagesRef = useRef(null);
   // 닉네임
   const nickname = useSocketStore((state) => state.nickname);
   // 채팅 메시지 목록 (서버 수신 + 라운드 구분선)
@@ -49,9 +51,25 @@ function GameLeftPanel() {
     }
   };
 
+  useEffect(() => {
+
+    const chatBox = chatMessagesRef.current;
+
+    if (!chatBox) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+    });
+
+  }, [chatList]);
+
   return (
 
-    <div className="left-panel">
+    <div className="left-panel mobile-chat-area">
 
       {/* 사용자 정보 */}
       <div className="info-box common-box">
@@ -78,7 +96,10 @@ function GameLeftPanel() {
         </button>
 
         {/* 채팅 목록 */}
-        <div className="chat-messages">
+        <div
+          className="chat-messages"
+          ref={chatMessagesRef}
+        >
 
           {
             chatList.map((message, index) => {
@@ -98,18 +119,22 @@ function GameLeftPanel() {
                 );
               }
 
+              const isMine = message.sender === nickname;
+
               return (
 
                 <div
                   key={index}
-                  className={
-                    message.type === "answer"
-                      ? `answer-message ${message.isWrong ? "wrong-message" : ""}`
-                      : "normal-message"
-                  }
+                  className={`message-row ${isMine ? "my-message-row" : "other-message-row"}`}
                 >
 
-                  <div>
+                  <div
+                    className={
+                      message.type === "answer"
+                        ? `answer-message ${message.isWrong ? "wrong-message" : ""}`
+                        : "normal-message"
+                    }
+                  >
 
                     <strong>{message.sender}</strong>
                     : {message.message}
@@ -153,13 +178,6 @@ function GameLeftPanel() {
           </button>
 
         </div>
-
-      </div>
-
-      {/* 가이드 */}
-      <div className="guide-box common-box">
-
-        <h5>가이드 그림</h5>
 
       </div>
 

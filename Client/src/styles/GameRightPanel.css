@@ -1,191 +1,143 @@
-/* CENTER */
-.canvas-section {
+.right-panel {
 
-  width: min(var(--ui-scale), 100%);
+  width: var(--right-width);
 
   display: flex;
 
   flex-direction: column;
 
-  align-items: center;
+  justify-content: space-between;
+
+  min-width: 0;
 
   gap: var(--inner-gap);
+}
+
+/* 유저 목록 */
+.user-list {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: var(--user-gap);
 
   min-width: 0;
 }
 
-/* 주제 */
-.topic-box {
+/* 유저 박스 */
+.user-box {
 
   width: 100%;
 
-  min-height: calc(var(--ui-scale) * 0.1);
-
-  padding: 0 calc(var(--ui-scale) * 0.03);
+  min-height: calc(var(--ui-scale) * 0.08);
 
   display: flex;
 
+  justify-content: space-between;
+
   align-items: center;
+
+  padding: 0 calc(var(--ui-scale) * 0.025);
 
   box-sizing: border-box;
 
-  overflow: hidden;
+  gap: 10px;
 
-  word-break: break-word;
+  overflow: hidden;
 }
 
-/* 캔버스 */
-.canvas-box {
 
-  width: 100%;
+/* 연결 끊김 */
+.disconnected-user {
 
-  max-width: 100%;
+  opacity: 0.45;
+}
 
-  aspect-ratio: 1 / 1;
-
-  background-color: #f8f9fa;
+/* 유저 정보 */
+.user-info {
 
   display: flex;
 
-  justify-content: center;
-
   align-items: center;
 
-  overflow: hidden;
-
-  border-radius: calc(var(--ui-scale) * 0.03);
-
-  font-size: calc(var(--font-size) * 1.5px);
+  gap: 6px;
 
   min-width: 0;
+
+  overflow: hidden;
 }
 
-/* 실제 canvas */
-.game-canvas {
 
-  width: 100%;
+/* 출제자 아이콘 */
 
-  height: 100%;
-
-  display: block;
-
-  background-color: white;
-
-  border-radius: calc(var(--ui-scale) * 0.02);
-
-  touch-action: none;
-}
-
-/* cursor */
-.cursor-eraser {
-
-  cursor: pointer;
-}
-
-.cursor-draw {
-
-  cursor: crosshair;
-}
-
-.cursor-disabled {
-
-  cursor: not-allowed;
-}
-
-/* 툴바 */
-.toolbar {
-
-  width: 100%;
-
-  min-height: calc(var(--ui-scale) * 0.12);
-
-  display: flex;
-
-  justify-content: center;
-
-  align-items: center;
-
-  flex-wrap: wrap;
-
-  gap: calc(var(--ui-scale) * 0.02);
-
-  padding: calc(var(--ui-scale) * 0.015);
-
-  background: rgba(255, 255, 255, 0.7);
-
-  border-radius: calc(var(--ui-scale) * 0.03);
-
-  backdrop-filter: blur(8px);
-
-  box-sizing: border-box;
-
-  box-shadow:
-    0 calc(4px * var(--scale))
-    calc(12px * var(--scale))
-    rgba(0,0,0,0.12);
-}
-
-/* 툴바 버튼 */
-.tool-button {
-
-  width: calc(var(--ui-scale) * 0.08);
-
-  height: calc(var(--ui-scale) * 0.08);
-
-  min-width: 40px;
-
-  min-height: 40px;
-
-  border: none;
-
-  border-radius: calc(var(--ui-scale) * 0.02);
-
-  background: white;
-
-  display: flex;
-
-  justify-content: center;
-
-  align-items: center;
+.drawer-icon {
 
   flex-shrink: 0;
-
-  cursor: pointer;
-
-  font-size: calc(var(--ui-scale) * 0.03);
-
-  transition:
-    transform 0.12s ease,
-    background 0.12s ease,
-    box-shadow 0.12s ease;
-
-  box-shadow:
-    0 calc(2px * var(--scale))
-    calc(6px * var(--scale))
-    rgba(0,0,0,0.1);
 }
 
-/* hover */
-.tool-button:hover {
 
-  background: #d4d4d4;
+/* 닉네임 */
 
-  transform: translateY(calc(-2px * var(--scale)));
+.user-nickname {
 
-  box-shadow:
-    0 calc(5px * var(--scale))
-    calc(14px * var(--scale))
-    rgba(0,0,0,0.15);
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
 }
 
-.tool-button.blue:hover {
 
-  background: #c8ccff;
+/* 끊김 텍스트 */
+
+.disconnect-text {
+
+  font-size: 0.75em;
+
+  flex-shrink: 0;
 }
 
-.tool-button.red:hover {
+/* 점수 */
+.user-score {
 
-  background: #fed0d0;
+  margin-left: auto;
+
+  font-size: 0.85em;
+
+  flex-shrink: 0;
+}
+
+/* 타이머 */
+.timer-box {
+
+  width: 100%;
+
+  min-height: calc(var(--ui-scale) * 0.18);
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  padding: 12px;
+
+  box-sizing: border-box;
+
+  text-align: center;
+}
+
+
+/* 타이머 텍스트 */
+
+.timer-text {
+
+  font-size: calc(var(--font-size) * 1.8px);
+
+  font-weight: bold;
+
+  margin: 0;
 }
 
 /* 태블릿 */
@@ -212,6 +164,13 @@
 
 /* 모바일 */
 @media (max-width: 576px) {
+
+  .right-panel {
+
+    grid-area: users;
+
+    width: 100%;
+  }
 
   .canvas-section {
 
@@ -241,6 +200,81 @@
     height: 48px;
 
     font-size: 18px;
+  }
+
+  .user-list {
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 10px;
+
+    width: 100%;
+  }
+
+  .user-box,
+  .timer-box {
+
+    width: 100%;
+
+    min-width: 0;
+
+    min-height: 48px;
+
+    box-sizing: border-box;
+  }
+
+  .user-box {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 8px 10px;
+
+    overflow: hidden;
+
+    font-size: 14px;
+
+    gap: 6px;
+
+  }
+
+  .user-info {
+
+    min-width: 0;
+
+    overflow: hidden;
+  }
+
+  .user-nickname {
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+  }
+
+  .timer-box {
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    padding: 0 12px;
+  }
+
+  .timer-text {
+
+    margin: 0;
+
+    font-size: 20px;
   }
 
 }
