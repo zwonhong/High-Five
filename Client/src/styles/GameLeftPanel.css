@@ -41,6 +41,7 @@
     padding: calc(var(--ui-scale) * 0.02);
   
     gap: calc(var(--ui-scale) * 0.02);
+
   }
   
   
@@ -70,6 +71,8 @@
   .chat-input {
   
     flex: 1;
+
+    min-width: 0;
   
     border: none;
   

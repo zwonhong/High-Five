@@ -1,4 +1,4 @@
-import "../styles/GameNextRoundtModal.css";
+import "../styles/GameNextRoundModal.css";
 function GameNextRoundModal({ round }) {
 
     return (
