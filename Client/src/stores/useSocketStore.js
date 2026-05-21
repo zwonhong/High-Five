@@ -19,6 +19,10 @@ export const useSocketStore = create((set) => ({
   // 라운드 정보 (game_started / round_start 수신 시 갱신)
   currentRound: 1,
   totalRounds: 5,
+  // 서버 기준 남은 시간(초) — 표시용 (roundEndsAt에서 계산)
+  timeLeft: 60,
+  // 라운드 종료 시각(ms) — 모든 클라이언트·재연결 동일 기준
+  roundEndsAt: null,
   // 플레이어별 점수 { socketId: score }
   scores: {},
   // 게임 시작 시 플레이어 목록 스냅샷 (게임 종료 화면용)
@@ -43,6 +47,8 @@ export const useSocketStore = create((set) => ({
   setTopic: (topic) => set({ topic }),
   setCurrentRound: (currentRound) => set({ currentRound }),
   setTotalRounds: (totalRounds) => set({ totalRounds }),
+  setTimeLeft: (timeLeft) => set({ timeLeft }),
+  setRoundEndsAt: (roundEndsAt) => set({ roundEndsAt }),
   setScores: (scores) => set({ scores }),
   setGamePlayers: (gamePlayers) => set({ gamePlayers }),
   setGameEndData: (gameEndData) => set({ gameEndData }),
@@ -72,6 +78,8 @@ export const useSocketStore = create((set) => ({
       topic: '',
       currentRound: 1,
       totalRounds: 5,
+      timeLeft: 60,
+      roundEndsAt: null,
       scores: {},
       gamePlayers: [],
       gameEndData: null,

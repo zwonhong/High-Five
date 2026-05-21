@@ -16,6 +16,18 @@ const GAME_PHASE = Object.freeze({
 const MAX_ROUNDS = 5;
 const TIMER_DURATION = 60;
 
+/** 라운드 종료 시각(roundEndsAt) 기준 남은 초 — 모든 클라이언트·재연결 동일 기준 */
+const getTimeLeft = (gameState) => {
+    if (gameState?.roundEndsAt) {
+        return Math.max(0, Math.ceil((gameState.roundEndsAt - Date.now()) / 1000));
+    }
+    if (gameState?.roundStartedAt) {
+        const elapsed = Math.floor((Date.now() - gameState.roundStartedAt) / 1000);
+        return Math.max(0, TIMER_DURATION - elapsed);
+    }
+    return TIMER_DURATION;
+};
+
 // ─────────────────────────────────────────
 // 게임 상태 인메모리 저장소
 // Game State In-Memory Store
@@ -107,6 +119,9 @@ const assignTopic = async (client, roomId) => {
     gameState.currentWinner = null;
     gameState.usedTopics = [...usedTopics, topic];
     gameState.currentStrokes = [];
+    const now = Date.now();
+    gameState.roundStartedAt = now;
+    gameState.roundEndsAt = now + TIMER_DURATION * 1000;
 
     let drawer = gameState.players[gameState.currentDrawerIndex];
     if (drawer?.isDisconnected) {
@@ -123,6 +138,8 @@ const assignTopic = async (client, roomId) => {
         currentRound: gameState.currentRound,
         totalRounds: gameState.totalRounds,
         drawer,
+        timeLeft: getTimeLeft(gameState),
+        roundEndsAt: gameState.roundEndsAt,
     };
 };
 
@@ -267,6 +284,8 @@ const getReconnectSnapshot = async (client, roomId, playerId) => {
         canDraw: isDrawer,
         topic: isDrawer ? gameState.currentTopic : '',
         scores: gameState.scores || {},
+        timeLeft: getTimeLeft(gameState),
+        roundEndsAt: gameState.roundEndsAt ?? null,
     };
 };
 
@@ -432,6 +451,7 @@ module.exports = {
     GAME_PHASE,
     MAX_ROUNDS,
     TIMER_DURATION,
+    getTimeLeft,
     startGame,
     assignTopic,
     checkAnswer,

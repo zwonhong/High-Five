@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { socketClient } from '../socket/socketClient'
 import { useSocketStore } from '../stores/useSocketStore'
 import { useGamePhaseStore, GAME_PHASE } from '../stores/useGamePhaseStore'
+import { applyRoundTimerPayload } from '../utils/roundTimer'
 
 // 세션 저장소 키
 const SESSION_KEY = 'hf_session'
@@ -36,6 +37,8 @@ export function useSocketEvents() {
   const setTopic = useSocketStore((state) => state.setTopic)
   const setCurrentRound = useSocketStore((state) => state.setCurrentRound)
   const setTotalRounds = useSocketStore((state) => state.setTotalRounds)
+  const setTimeLeft = useSocketStore((state) => state.setTimeLeft)
+  const setRoundEndsAt = useSocketStore((state) => state.setRoundEndsAt)
   const setScores = useSocketStore((state) => state.setScores)
   const setGamePlayers = useSocketStore((state) => state.setGamePlayers)
   const setGameEndData = useSocketStore((state) => state.setGameEndData)
@@ -127,6 +130,7 @@ export function useSocketEvents() {
       setDrawer(data.drawer)
       setIsDrawer(data.drawer?.id === socketClient.id)
       if (data.topic) setTopic(data.topic)
+      applyRoundTimerPayload(data, setRoundEndsAt, setTimeLeft)
     })
 
     // 정답자 발생
@@ -140,6 +144,7 @@ export function useSocketEvents() {
     socketClient.on('round_end', (data) => {
       console.log('round_end 수신', data)
       setScores(data.scores)
+      setRoundEndsAt(null)
     })
 
     // 다음 라운드
@@ -155,6 +160,7 @@ export function useSocketEvents() {
     // 게임 종료
     socketClient.on('game_end', (data) => {
       console.log('game_end 수신', data)
+      setRoundEndsAt(null)
       setGameEndData(data)
       if (data?.roomId && Array.isArray(data.users)) {
         setUsers(data.users)
@@ -188,6 +194,7 @@ export function useSocketEvents() {
         if (data.topic) setTopic(data.topic)
         else setTopic('')
         if (data.scores) setScores(data.scores)
+        applyRoundTimerPayload(data, setRoundEndsAt, setTimeLeft)
         goToPlaying()
       } else {
         goToWaiting()
@@ -226,5 +233,5 @@ export function useSocketEvents() {
       socketClient.off('reconnect_fail')
       socketClient.off('error_message')
     }
-  }, [nickname, setNickname, setRoomId, setUsers, addChatMessage, setChatList, setPendingCanvasStrokes, setIsConnected, setHasJoined, setErrorMessage, setIsDrawer, setDrawer, setTopic, setCurrentRound, setTotalRounds, setScores, setGamePlayers, setGameEndData, setCorrectAnswerInfo, goToPlaying, goToWaiting, goToStart])
+  }, [nickname, setNickname, setRoomId, setUsers, addChatMessage, setChatList, setPendingCanvasStrokes, setIsConnected, setHasJoined, setErrorMessage, setIsDrawer, setDrawer, setTopic, setCurrentRound, setTotalRounds, setTimeLeft, setRoundEndsAt, setScores, setGamePlayers, setGameEndData, setCorrectAnswerInfo, goToPlaying, goToWaiting, goToStart])
 }

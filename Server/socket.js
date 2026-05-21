@@ -20,6 +20,7 @@ const {
     removeStrokesByIds,
     addChatLog,
     getReconnectSnapshot,
+    getGameState,
     TIMER_DURATION,
 } = require('./gameManager');
 
@@ -92,6 +93,13 @@ module.exports = async (server) => {
         io.to(roomId).emit('room_update', { roomId, users });
     };
 
+    const emitRoundStart = (roomId, topicData) => {
+        const { topic, currentRound, totalRounds, drawer, timeLeft, roundEndsAt } = topicData;
+        const base = { currentRound, totalRounds, drawer, timeLeft, roundEndsAt };
+        io.to(roomId).except(drawer.id).emit('round_start', base);
+        io.to(drawer.id).emit('round_start', { ...base, topic });
+    };
+
     const cancelRoomReconnectionTimers = (users) => {
         if (!users) return;
         for (const u of users) {
@@ -111,13 +119,18 @@ module.exports = async (server) => {
         }
     };
 
-    const startTimer = (roomId, onTimeout) => {
+    const startTimer = async (roomId, onTimeout) => {
         clearTimer(roomId);
+        const gameState = await getGameState(pubClient, roomId);
+        const delay = gameState?.roundEndsAt
+            ? Math.max(0, gameState.roundEndsAt - Date.now())
+            : TIMER_DURATION * 1000;
+
         roundTimers.set(
             roomId,
             setTimeout(() => {
                 Promise.resolve(onTimeout(roomId)).catch((e) => console.error('[TIMER]', e));
-            }, TIMER_DURATION * 1000)
+            }, delay)
         );
     };
 
@@ -133,9 +146,7 @@ module.exports = async (server) => {
         const topicData = await assignTopic(pubClient, roomId);
         if (!topicData) return;
 
-        const { topic, currentRound, totalRounds, drawer } = topicData;
-        io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
-        io.to(drawer.id).emit('round_start', { currentRound, totalRounds, drawer, topic });
+        emitRoundStart(roomId, topicData);
         startTimer(roomId, handleRoundEnd);
     };
 
@@ -182,9 +193,7 @@ module.exports = async (server) => {
 
             const topicData = await assignTopic(pubClient, roomId);
             if (topicData) {
-                const { topic, currentRound, totalRounds, drawer } = topicData;
-                io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
-                io.to(drawer.id).emit('round_start', { currentRound, totalRounds, drawer, topic });
+                emitRoundStart(roomId, topicData);
                 startTimer(roomId, handleRoundEnd);
             }
         }
@@ -255,9 +264,7 @@ module.exports = async (server) => {
 
                         const topicData = await assignTopic(pubClient, roomId);
                         if (topicData) {
-                            const { topic, currentRound, totalRounds, drawer } = topicData;
-                            io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
-                            io.to(drawer.id).emit('round_start', { currentRound, totalRounds, drawer, topic });
+                            emitRoundStart(roomId, topicData);
                             startTimer(roomId, handleRoundEnd);
                         }
                     }
