@@ -21,20 +21,43 @@ function GameRightPanel({ timeLeft }) {
 
             <div
               key={user.id}
-              className="user-box common-box"
-              style={user.isDisconnected ? { opacity: 0.45 } : undefined}
+
+              className={`
+                user-box
+                common-box
+                ${user.isDisconnected ? "disconnected-user" : ""}
+              `}
             >
 
-              {/* 출제자 표시 */}
-              {drawer?.id === user.id && <span>✏️ </span>}
+              {/* 출제자 */}
+              <div className="user-info">
 
-              {user.nickname}
-              {user.isDisconnected && (
-                <span style={{ marginLeft: "4px", fontSize: "0.75em" }}>(끊김)</span>
-              )}
+                {
+                  drawer?.id === user.id &&
+                  <span className="drawer-icon">
+                    ✏️
+                  </span>
+                }
 
-              <span style={{ marginLeft: "auto", fontSize: "0.85em" }}>
+                <span className="user-nickname">
+                  {user.nickname}
+                </span>
+
+                {
+                  user.isDisconnected && (
+                    <span className="disconnect-text">
+                      (끊김)
+                    </span>
+                  )
+                }
+
+              </div>
+
+              {/* 점수 */}
+              <span className="user-score">
+
                 {scores[user.id] ?? 0}점
+
               </span>
 
             </div>
@@ -47,7 +70,7 @@ function GameRightPanel({ timeLeft }) {
       {/* 타이머 */}
       <div className="timer-box common-box">
 
-        <h3>
+        <h3 className="timer-text">
           ⏰ {timeLeft}
         </h3>
 
