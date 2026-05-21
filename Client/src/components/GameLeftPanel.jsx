@@ -10,21 +10,17 @@ function GameLeftPanel() {
   const nickname = useSocketStore((state) => state.nickname);
   // 채팅 메시지 목록 (서버 수신 + 라운드 구분선)
   const chatList = useSocketStore((state) => state.chatList);
-
   // 현재 입력 중인 채팅
   const [chatInput, setChatInput] = useState("");
-
   // 정답 모드 여부
   // true 상태에서 다음 채팅 1회만 정답 채팅으로 처리
   const [isAnswerMode, setIsAnswerMode] = useState(false);
-
   // 정답 버튼 클릭
   const handleAnswerMode = () => {
 
     setIsAnswerMode(true);
 
   };
-
   // 채팅 전송
   const handleSendMessage = () => {
 
@@ -41,26 +37,6 @@ function GameLeftPanel() {
     setChatInput("");
   };
 
-  /* 
-  socket.on("wrong_message", ({ messageId }) => {
-
-  setMessages((prev) =>
-
-    prev.map((msg) =>
-
-      msg.id === messageId
-        ? {
-            ...msg,
-            isWrong: true
-          }
-        : msg
-
-    )
-
-  );
-
-}); 
-*/
   const handleKeyDown = (e) => {
 
     // 한글 입력 채팅 error처리용
