@@ -32,6 +32,8 @@ function GameCanvasSection({
   const [currentStroke, setCurrentStroke] = useState(null);
   // 전체 stroke 저장
   const [strokes, setStrokes] = useState([]);
+  const pendingCanvasStrokes = useSocketStore((state) => state.pendingCanvasStrokes);
+  const setPendingCanvasStrokes = useSocketStore((state) => state.setPendingCanvasStrokes);
 
   // canvas 초기화
   useEffect(() => {
@@ -46,6 +48,13 @@ function GameCanvasSection({
     ctx.lineWidth = PEN_WIDTH;
 
   }, []);
+
+  // 재연결 시 서버 스트로크 (마운트 전 reconnect_success 대비)
+  useEffect(() => {
+    if (pendingCanvasStrokes === null) return;
+    setStrokes(pendingCanvasStrokes);
+    setPendingCanvasStrokes(null);
+  }, [pendingCanvasStrokes, setPendingCanvasStrokes]);
 
   // 다른 사람 stroke 수신
   useEffect(() => {
@@ -69,16 +78,25 @@ function GameCanvasSection({
       setStrokes((prev) => prev.filter((s) => !strokeIds.includes(s.id)));
     };
 
+    const onReconnectSuccess = (data) => {
+      if (Array.isArray(data?.strokes)) {
+        setStrokes(data.strokes);
+        setPendingCanvasStrokes(null);
+      }
+    };
+
     socketClient.on('receive_draw', onReceiveDraw);
     socketClient.on('clear_canvas', onClearCanvas);
     socketClient.on('undo_draw', onUndoDraw);
     socketClient.on('erase_draw', onEraseDraw);
+    socketClient.on('reconnect_success', onReconnectSuccess);
 
     return () => {
       socketClient.off('receive_draw', onReceiveDraw);
       socketClient.off('clear_canvas', onClearCanvas);
       socketClient.off('undo_draw', onUndoDraw);
       socketClient.off('erase_draw', onEraseDraw);
+      socketClient.off('reconnect_success', onReconnectSuccess);
     };
 
   }, []);

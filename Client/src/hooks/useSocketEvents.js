@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { socketClient } from '../socket/socketClient'
 import { useSocketStore } from '../stores/useSocketStore'
 import { useGamePhaseStore, GAME_PHASE } from '../stores/useGamePhaseStore'
+import { applyRoundTimerPayload } from '../utils/roundTimer'
 
 // 세션 저장소 키
 const SESSION_KEY = 'hf_session'
@@ -36,10 +37,14 @@ export function useSocketEvents() {
   const setTopic = useSocketStore((state) => state.setTopic)
   const setCurrentRound = useSocketStore((state) => state.setCurrentRound)
   const setTotalRounds = useSocketStore((state) => state.setTotalRounds)
+  const setTimeLeft = useSocketStore((state) => state.setTimeLeft)
+  const setRoundEndsAt = useSocketStore((state) => state.setRoundEndsAt)
   const setScores = useSocketStore((state) => state.setScores)
   const setGamePlayers = useSocketStore((state) => state.setGamePlayers)
   const setGameEndData = useSocketStore((state) => state.setGameEndData)
   const setCorrectAnswerInfo = useSocketStore((state) => state.setCorrectAnswerInfo)
+  const setChatList = useSocketStore((state) => state.setChatList)
+  const setPendingCanvasStrokes = useSocketStore((state) => state.setPendingCanvasStrokes)
 
   const goToPlaying = useGamePhaseStore((state) => state.goToPlaying)
   const goToWaiting = useGamePhaseStore((state) => state.goToWaiting)
@@ -53,7 +58,10 @@ export function useSocketEvents() {
       console.log('Socket connected:', socketClient.id)
 
       const session = getSession()
-      if (session && session.socketId !== socketClient.id) {
+      if (
+        session?.gamePhase === GAME_PHASE.PLAYING &&
+        session.socketId !== socketClient.id
+      ) {
         console.log('이전 세션 감지, 재연결 시도:', session)
         socketClient.emit('try_reconnect', {
           roomId: session.roomId,
@@ -71,13 +79,22 @@ export function useSocketEvents() {
 
     // 방 인원 변경 (입장/퇴장) — 세션 갱신
     socketClient.on('room_update', (data) => {
+      if (!data?.roomId || !Array.isArray(data.users)) return
+
       setRoomId(data.roomId)
       setUsers(data.users)
       setHasJoined(true)
 
-      // 재연결용 세션 저장
-      const session = getSession()
-      saveSession(data.roomId, nickname, socketClient.id, session?.gamePhase ?? GAME_PHASE.WAITING)
+      // 입장·대기·게임 중 세션 갱신 (게임 종료 후 room_update 만 제외)
+      if (!useSocketStore.getState().gameEndData) {
+        const session = getSession()
+        saveSession(
+          data.roomId,
+          nickname,
+          socketClient.id,
+          session?.gamePhase ?? GAME_PHASE.WAITING
+        )
+      }
     })
 
     // 채팅 메시지 수신
@@ -96,9 +113,10 @@ export function useSocketEvents() {
       setGamePlayers(useSocketStore.getState().users)
       goToPlaying()
 
-      // 세션의 gamePhase 갱신
-      const session = getSession()
-      if (session) saveSession(session.roomId, session.nickname, session.socketId, GAME_PHASE.PLAYING)
+      const { roomId, nickname: storedNickname } = useSocketStore.getState()
+      if (roomId && storedNickname) {
+        saveSession(roomId, storedNickname, socketClient.id, GAME_PHASE.PLAYING)
+      }
     }
 
     socketClient.on('game_start', handleGameStart)
@@ -112,6 +130,7 @@ export function useSocketEvents() {
       setDrawer(data.drawer)
       setIsDrawer(data.drawer?.id === socketClient.id)
       if (data.topic) setTopic(data.topic)
+      applyRoundTimerPayload(data, setRoundEndsAt, setTimeLeft)
     })
 
     // 정답자 발생
@@ -125,6 +144,7 @@ export function useSocketEvents() {
     socketClient.on('round_end', (data) => {
       console.log('round_end 수신', data)
       setScores(data.scores)
+      setRoundEndsAt(null)
     })
 
     // 다음 라운드
@@ -140,11 +160,15 @@ export function useSocketEvents() {
     // 게임 종료
     socketClient.on('game_end', (data) => {
       console.log('game_end 수신', data)
+      setRoundEndsAt(null)
       setGameEndData(data)
+      if (data?.roomId && Array.isArray(data.users)) {
+        setUsers(data.users)
+      }
       clearSession()
     })
 
-    // 재연결 성공 — 세션 복원
+    // 재연결 성공 — 세션·게임 UI·캔버스·채팅 복원
     socketClient.on('reconnect_success', (data) => {
       console.log('reconnect_success 수신', data)
 
@@ -156,14 +180,26 @@ export function useSocketEvents() {
       setHasJoined(true)
       setNickname(session.nickname)
 
-      // 이전 게임 단계로 복귀
       if (session.gamePhase === GAME_PHASE.PLAYING) {
+        if (Array.isArray(data.strokes)) {
+          setPendingCanvasStrokes(data.strokes)
+        }
+        if (Array.isArray(data.chatLog)) {
+          setChatList(data.chatLog)
+        }
+        if (data.currentRound) setCurrentRound(data.currentRound)
+        if (data.totalRounds) setTotalRounds(data.totalRounds)
+        if (data.drawer) setDrawer(data.drawer)
+        setIsDrawer(data.drawer ? data.drawer.id === socketClient.id : Boolean(data.canDraw))
+        if (data.topic) setTopic(data.topic)
+        else setTopic('')
+        if (data.scores) setScores(data.scores)
+        applyRoundTimerPayload(data, setRoundEndsAt, setTimeLeft)
         goToPlaying()
       } else {
         goToWaiting()
       }
 
-      // 세션의 socketId 갱신
       saveSession(data.roomId, session.nickname, socketClient.id, session.gamePhase)
     })
 
@@ -197,5 +233,5 @@ export function useSocketEvents() {
       socketClient.off('reconnect_fail')
       socketClient.off('error_message')
     }
-  }, [nickname, setNickname, setRoomId, setUsers, addChatMessage, setIsConnected, setHasJoined, setErrorMessage, setIsDrawer, setDrawer, setTopic, setCurrentRound, setTotalRounds, setScores, setGamePlayers, setGameEndData, setCorrectAnswerInfo, goToPlaying, goToWaiting, goToStart])
+  }, [nickname, setNickname, setRoomId, setUsers, addChatMessage, setChatList, setPendingCanvasStrokes, setIsConnected, setHasJoined, setErrorMessage, setIsDrawer, setDrawer, setTopic, setCurrentRound, setTotalRounds, setTimeLeft, setRoundEndsAt, setScores, setGamePlayers, setGameEndData, setCorrectAnswerInfo, goToPlaying, goToWaiting, goToStart])
 }
