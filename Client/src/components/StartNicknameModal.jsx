@@ -23,58 +23,36 @@ function StartNicknameModal({
 
   return (
 
-    <div
-      className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-      style={{
-        backgroundColor: "rgba(0,0,0,0.3)",
-        zIndex: 1000
-      }}
-    >
+    <div className="nickname-overlay">
 
-      {/* 팝업 */}
-      <div
-        className="bg-white border border-dark d-flex flex-column justify-content-center align-items-center"
-        style={{
-          width: "500px",
-          height: "300px",
-          borderRadius: "40px"
-        }}
-      >
+      <div className="nickname-modal">
 
-        {/* 에러 메시지 */}
         {
           errorMessage && (
-            <p className="text-danger mb-2" style={{ fontSize: "14px" }}>
+
+            <p className="nickname-error">
+
               {errorMessage}
+
             </p>
+
           )
         }
 
-        {/* 입력창 */}
         <input
           type="text"
+
           placeholder="닉네임을 입력하세요"
-          className="form-control text-center mb-4"
-          style={{
-            width: "300px",
-            height: "60px",
-            fontSize: "24px"
-          }}
+
+          className="nickname-input form-control"
 
           value={nickname}
 
           onChange={(e) => setNickname(e.target.value)}
         />
 
-        {/* 입장 버튼 */}
         <button
-          className="btn btn-light border border-dark"
-          style={{
-            width: "180px",
-            height: "70px",
-            fontSize: "24px",
-            borderRadius: "20px"
-          }}
+          className="nickname-button btn btn-light border border-dark"
 
           onClick={handleJoinClick}
         >
@@ -84,6 +62,7 @@ function StartNicknameModal({
       </div>
 
     </div>
+
   );
 }
 

@@ -1,37 +1,24 @@
 import "../styles/GameNextRoundModal.css";
 function GameNextRoundModal({ round }) {
 
-    return (
-  
-      <div
-        className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-        style={{
-          backgroundColor: "rgba(0,0,0,0.4)",
-          zIndex: 4000
-        }}
-      >
-  
-        <div
-          className="bg-white d-flex flex-column justify-content-center align-items-center"
-          style={{
-            width: "500px",
-            height: "300px",
-            borderRadius: "30px"
-          }}
-        >
-  
-          <h1>
-            ROUND {round}
-          </h1>
-  
-          <p className="mt-3">
-            다음 라운드를 시작합니다
-          </p>
-  
-        </div>
-  
+  return (
+
+    <div className="next-round-overlay">
+
+      <div className="next-round-modal">
+
+        <h1 className="next-round-title">
+          ROUND {round}
+        </h1>
+
+        <p className="next-round-description">
+          다음 라운드를 시작합니다
+        </p>
+
       </div>
-    );
-  }
-  
-  export default GameNextRoundModal;
+
+    </div>
+  );
+}
+
+export default GameNextRoundModal;
