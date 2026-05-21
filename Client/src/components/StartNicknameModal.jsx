@@ -20,6 +20,11 @@ function StartNicknameModal({
     onJoinGame();
   };
 
+  const handleKeyDown = (e) => {
+    if (e.nativeEvent.isComposing) return;
+    if (e.key === 'Enter') handleJoinClick();
+  };
+
   return (
 
     <div
@@ -63,6 +68,7 @@ function StartNicknameModal({
           value={nickname}
 
           onChange={(e) => setNickname(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
 
         {/* 입장 버튼 */}
