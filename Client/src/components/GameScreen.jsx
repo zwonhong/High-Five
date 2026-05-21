@@ -1,7 +1,7 @@
 import "../styles/common.css";
 import "../styles/GameScreen.css";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import GameLeftPanel from "./GameLeftPanel";
 import GameCanvasSection from "./GameCanvasSection";
@@ -30,6 +30,7 @@ function GameScreen() {
 
   // 라운드 진행 여부
   const [isRoundEnded, setIsRoundEnded] = useState(false);
+  const nextRoundTimerRef = useRef(null);
   // 결과 모달
   const [showGameResultModal, setShowGameResultModal] = useState(false);
   // 다음 라운드 모달
@@ -75,7 +76,8 @@ function GameScreen() {
       setShowTimeoutModal(false);
       setShowNextRoundModal(true);
 
-      setTimeout(() => {
+      if (nextRoundTimerRef.current) clearTimeout(nextRoundTimerRef.current);
+      nextRoundTimerRef.current = setTimeout(() => {
         setShowNextRoundModal(false);
       }, 1500);
     };
@@ -103,6 +105,7 @@ function GameScreen() {
       socketClient.off('round_end', onRoundEnd);
       socketClient.off('next_round', onNextRound);
       socketClient.off('game_end', onGameEnd);
+      if (nextRoundTimerRef.current) clearTimeout(nextRoundTimerRef.current);
     };
 
   }, []);

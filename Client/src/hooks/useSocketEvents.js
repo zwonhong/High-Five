@@ -194,6 +194,7 @@ export function useSocketEvents() {
         if (data.topic) setTopic(data.topic)
         else setTopic('')
         if (data.scores) setScores(data.scores)
+        setGamePlayers(data.users)
         applyRoundTimerPayload(data, setRoundEndsAt, setTimeLeft)
         goToPlaying()
       } else {

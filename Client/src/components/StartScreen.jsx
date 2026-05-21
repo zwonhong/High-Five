@@ -23,12 +23,12 @@ function StartScreen() {
     if (errorMessage && isWaiting) {
       setIsWaiting(false);
       setShowModal(true);
-      clearErrorMessage();
     }
-  }, [errorMessage, isWaiting, clearErrorMessage]);
+  }, [errorMessage, isWaiting]);
 
   // 입장 버튼 클릭 시 소켓 emit 후 로딩 대기
   const handleJoinGame = () => {
+    clearErrorMessage();
     const success = joinAutoRoom(nickname);
 
     if (!success) {
