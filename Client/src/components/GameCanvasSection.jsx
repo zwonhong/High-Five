@@ -221,128 +221,6 @@ function GameCanvasSection({
     setCurrentStroke(null);
   };
 
-  /* Touch Event(모바일 웹 용) */
-
-const getTouchPosition = (touch) => {
-
-  const canvas = canvasRef.current;
-
-  const rect = canvas.getBoundingClientRect();
-
-  return {
-
-    x: (touch.clientX - rect.left) * (canvas.width / rect.width),
-
-    y: (touch.clientY - rect.top) * (canvas.height / rect.height)
-
-  };
-
-};
-
-
-const handleTouchStart = (e) => {
-
-  e.preventDefault();
-
-  if (!isDrawer) {
-    return;
-  }
-
-  const touch = e.touches[0];
-
-  const pos = getTouchPosition(touch);
-
-  if (currentTool === "eraser") {
-
-    eraseStroke(pos);
-
-    return;
-  }
-
-  setIsDrawing(true);
-
-  setCurrentStroke({
-
-    points: [pos],
-
-    color: currentColor,
-
-    width: PEN_WIDTH,
-
-    tool: "pen"
-
-  });
-
-};
-
-
-const handleTouchMove = (e) => {
-
-  e.preventDefault();
-
-  if (!isDrawing) {
-    return;
-  }
-
-  const touch = e.touches[0];
-
-  const newPoint = getTouchPosition(touch);
-
-  setCurrentStroke((prev) => {
-
-    const updatedStroke = {
-
-      ...prev,
-
-      points: [
-
-        ...prev.points,
-
-        newPoint
-
-      ]
-
-    };
-
-    redrawCanvas(updatedStroke);
-
-    return updatedStroke;
-
-  });
-
-};
-
-
-const handleTouchEnd = () => {
-
-  if (!isDrawing || !currentStroke) {
-    return;
-  }
-
-  setIsDrawing(false);
-
-  const newStroke = {
-
-    id: Date.now(),
-
-    ...currentStroke
-
-  };
-
-  setStrokes((prev) => [
-
-    ...prev,
-
-    newStroke
-
-  ]);
-
-  socketClient.emit('draw_data', newStroke);
-
-  setCurrentStroke(null);
-
-};
-
   // canvas 다시 그리기
   const redrawCanvas = (tempStroke = null) => {
 
@@ -406,8 +284,25 @@ const handleTouchEnd = () => {
     socketClient.emit('undo_draw');
   };
 
+  // 터치 좌표 계산
+  const getTouchPosition = (e) => {
+
+    const canvas = canvasRef.current;
+
+    const rect = canvas.getBoundingClientRect();
+
+    const touch = e.touches[0];
+
+    return {
+      x: (touch.clientX - rect.left) * (canvas.width / rect.width),
+      y: (touch.clientY - rect.top) * (canvas.height / rect.height)
+    };
+  };
+
   // 터치 시작
   const handleTouchStart = (e) => {
+
+    e.preventDefault();
 
     if (!isDrawer) return;
 
@@ -438,6 +333,8 @@ const handleTouchEnd = () => {
   // 터치 이동
   const handleTouchMove = (e) => {
 
+    e.preventDefault();
+
     if (!isDrawing) return;
 
     const newPoint = getTouchPosition(e);
@@ -458,10 +355,26 @@ const handleTouchEnd = () => {
     });
   };
 
-  // 터치 종료 → 마우스와 동일하게 draw_data emit
+  // 터치 종료 → draw_data emit
   const handleTouchEnd = () => {
 
-    handleMouseUp();
+    if (!isDrawing || !currentStroke) return;
+
+    setIsDrawing(false);
+
+    const newStroke = {
+
+      id: Date.now(),
+
+      ...currentStroke
+
+    };
+
+    setStrokes((prev) => [...prev, newStroke]);
+
+    socketClient.emit('draw_data', newStroke);
+
+    setCurrentStroke(null);
   };
 
   const eraseStroke = (clickPos) => {
