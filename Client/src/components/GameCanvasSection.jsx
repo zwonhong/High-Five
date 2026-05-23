@@ -50,6 +50,75 @@ function GameCanvasSection({
 
   }, []);
 
+  // 실제 선 그리기
+  const drawStroke = (points, color) => {
+
+    const canvas = canvasRef.current;
+
+    const ctx = canvas.getContext("2d");
+
+    if (points.length < 2) {
+      return;
+    }
+
+    ctx.strokeStyle = color;
+
+    ctx.lineWidth = PEN_WIDTH;
+
+    ctx.beginPath();
+
+    ctx.moveTo(points[0].x, points[0].y);
+
+    for (let i = 1; i < points.length; i++) {
+
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+
+    ctx.stroke();
+  };
+
+  // canvas 다시 그리기
+  const redrawCanvas = (tempStroke = null) => {
+
+    const canvas = canvasRef.current;
+
+    const ctx = canvas.getContext("2d");
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "white";
+
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    strokes.forEach((stroke) => {
+
+      drawStroke(stroke.points, stroke.color);
+
+    });
+
+    if (tempStroke) {
+
+      drawStroke(tempStroke.points, tempStroke.color);
+
+    }
+  };
+
+  // 전체 초기화 (clear_canvas 수신 시 호출)
+  const clearCanvasLocally = () => {
+
+    const canvas = canvasRef.current;
+
+    const ctx = canvas.getContext("2d");
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "white";
+
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    setStrokes([]);
+  };
+
   // 재연결 시 서버 스트로크 (마운트 전 reconnect_success 대비)
   useEffect(() => {
     if (pendingCanvasStrokes === null) return;
@@ -100,7 +169,7 @@ function GameCanvasSection({
       socketClient.off('reconnect_success', onReconnectSuccess);
     };
 
-  }, []);
+  }, [setPendingCanvasStrokes]);
 
   // 라운드 종료 시 캔버스 초기화 emit (drawer만)
   useEffect(() => {
@@ -120,6 +189,7 @@ function GameCanvasSection({
 
     redrawCanvas();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [strokes]);
 
   // 마우스 좌표 계산
@@ -221,181 +291,6 @@ function GameCanvasSection({
     setCurrentStroke(null);
   };
 
-  /* Touch Event(모바일 웹 용) */
-
-const getTouchPosition = (touch) => {
-
-  const canvas = canvasRef.current;
-
-  const rect = canvas.getBoundingClientRect();
-
-  return {
-
-    x: (touch.clientX - rect.left) * (canvas.width / rect.width),
-
-    y: (touch.clientY - rect.top) * (canvas.height / rect.height)
-
-  };
-
-};
-
-
-const handleTouchStart = (e) => {
-
-  e.preventDefault();
-
-  if (!isDrawer) {
-    return;
-  }
-
-  const touch = e.touches[0];
-
-  const pos = getTouchPosition(touch);
-
-  if (currentTool === "eraser") {
-
-    eraseStroke(pos);
-
-    return;
-  }
-
-  setIsDrawing(true);
-
-  setCurrentStroke({
-
-    points: [pos],
-
-    color: currentColor,
-
-    width: PEN_WIDTH,
-
-    tool: "pen"
-
-  });
-
-};
-
-
-const handleTouchMove = (e) => {
-
-  e.preventDefault();
-
-  if (!isDrawing) {
-    return;
-  }
-
-  const touch = e.touches[0];
-
-  const newPoint = getTouchPosition(touch);
-
-  setCurrentStroke((prev) => {
-
-    const updatedStroke = {
-
-      ...prev,
-
-      points: [
-
-        ...prev.points,
-
-        newPoint
-
-      ]
-
-    };
-
-    redrawCanvas(updatedStroke);
-
-    return updatedStroke;
-
-  });
-
-};
-
-
-const handleTouchEnd = () => {
-
-  if (!isDrawing || !currentStroke) {
-    return;
-  }
-
-  setIsDrawing(false);
-
-  const newStroke = {
-
-    id: Date.now(),
-
-    ...currentStroke
-
-  };
-
-  setStrokes((prev) => [
-
-    ...prev,
-
-    newStroke
-
-  ]);
-
-  socketClient.emit('draw_data', newStroke);
-
-  setCurrentStroke(null);
-
-};
-
-  // canvas 다시 그리기
-  const redrawCanvas = (tempStroke = null) => {
-
-    const canvas = canvasRef.current;
-
-    const ctx = canvas.getContext("2d");
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "white";
-
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    strokes.forEach((stroke) => {
-
-      drawStroke(stroke.points, stroke.color);
-
-    });
-
-    if (tempStroke) {
-
-      drawStroke(tempStroke.points, tempStroke.color);
-
-    }
-  };
-
-  // 실제 선 그리기
-  const drawStroke = (points, color) => {
-
-    const canvas = canvasRef.current;
-
-    const ctx = canvas.getContext("2d");
-
-    if (points.length < 2) {
-      return;
-    }
-
-    ctx.strokeStyle = color;
-
-    ctx.lineWidth = PEN_WIDTH;
-
-    ctx.beginPath();
-
-    ctx.moveTo(points[0].x, points[0].y);
-
-    for (let i = 1; i < points.length; i++) {
-
-      ctx.lineTo(points[i].x, points[i].y);
-    }
-
-    ctx.stroke();
-  };
-
   const handleUndo = () => {
 
     if (!isDrawer) {
@@ -406,8 +301,25 @@ const handleTouchEnd = () => {
     socketClient.emit('undo_draw');
   };
 
+  // 터치 좌표 계산
+  const getTouchPosition = (e) => {
+
+    const canvas = canvasRef.current;
+
+    const rect = canvas.getBoundingClientRect();
+
+    const touch = e.touches[0];
+
+    return {
+      x: (touch.clientX - rect.left) * (canvas.width / rect.width),
+      y: (touch.clientY - rect.top) * (canvas.height / rect.height)
+    };
+  };
+
   // 터치 시작
   const handleTouchStart = (e) => {
+
+    e.preventDefault();
 
     if (!isDrawer) return;
 
@@ -438,6 +350,8 @@ const handleTouchEnd = () => {
   // 터치 이동
   const handleTouchMove = (e) => {
 
+    e.preventDefault();
+
     if (!isDrawing) return;
 
     const newPoint = getTouchPosition(e);
@@ -458,10 +372,26 @@ const handleTouchEnd = () => {
     });
   };
 
-  // 터치 종료 → 마우스와 동일하게 draw_data emit
+  // 터치 종료 → draw_data emit
   const handleTouchEnd = () => {
 
-    handleMouseUp();
+    if (!isDrawing || !currentStroke) return;
+
+    setIsDrawing(false);
+
+    const newStroke = {
+
+      id: Date.now(),
+
+      ...currentStroke
+
+    };
+
+    setStrokes((prev) => [...prev, newStroke]);
+
+    socketClient.emit('draw_data', newStroke);
+
+    setCurrentStroke(null);
   };
 
   const eraseStroke = (clickPos) => {
@@ -481,22 +411,6 @@ const handleTouchEnd = () => {
     const strokeIds = toErase.map((s) => s.id);
     setStrokes((prev) => prev.filter((s) => !strokeIds.includes(s.id)));
     socketClient.emit('erase_draw', { strokeIds });
-  };
-
-  // 전체 초기화 (clear_canvas 수신 시 호출)
-  const clearCanvasLocally = () => {
-
-    const canvas = canvasRef.current;
-
-    const ctx = canvas.getContext("2d");
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "white";
-
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    setStrokes([]);
   };
 
   return (
