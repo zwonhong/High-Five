@@ -166,7 +166,7 @@ function GameLeftPanel() {
 
             onChange={(e) => setChatInput(e.target.value)}
 
-            onKe yDown={handleKeyDown}
+            onKeyDown={handleKeyDown}
           />
 
           {/* 전송 버튼 */}
