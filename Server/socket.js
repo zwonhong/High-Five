@@ -296,24 +296,30 @@ module.exports = async (server) => {
                 socket.lastChatTime = now;
 
                 if (roomId && message.trim()) {
-                    const chatEntry = {
-                        sender: nickname,
-                        message,
-                        timestamp: now
-                    };
-                    await addChatLog(pubClient, roomId, chatEntry);
-                    io.to(roomId).emit('receive_chat', chatEntry);
-                    console.log(`[CHAT][${roomId}] ${nickname}: ${message}`);
+                    const base = { sender: nickname, message, timestamp: now };
 
-                    // 정답 확인 → 정답 즉시 라운드 종료
-                    const answerResult = await checkAnswer(pubClient, roomId, socket.id, message, inAnswer);
-                    if (answerResult?.isCorrect) {
-                        io.to(roomId).emit('correct_answer', {
-                            nickname: answerResult.player.nickname,
-                            point: answerResult.point,
-                            scores: answerResult.scores,
-                        });
-                        await handleRoundEnd(roomId);
+                    if (inAnswer) {
+                        const answerResult = await checkAnswer(pubClient, roomId, socket.id, message, true);
+                        const chatEntry =
+                            answerResult != null
+                                ? { ...base, type: 'answer', isWrong: !answerResult.isCorrect }
+                                : base;
+                        await addChatLog(pubClient, roomId, chatEntry);
+                        io.to(roomId).emit('receive_chat', chatEntry);
+                        console.log(`[CHAT][${roomId}] ${nickname}: ${message}`);
+
+                        if (answerResult?.isCorrect) {
+                            io.to(roomId).emit('correct_answer', {
+                                nickname: answerResult.player.nickname,
+                                point: answerResult.point,
+                                scores: answerResult.scores,
+                            });
+                            await handleRoundEnd(roomId);
+                        }
+                    } else {
+                        await addChatLog(pubClient, roomId, base);
+                        io.to(roomId).emit('receive_chat', base);
+                        console.log(`[CHAT][${roomId}] ${nickname}: ${message}`);
                     }
                 }
             } catch (err) {
