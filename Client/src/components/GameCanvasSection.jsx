@@ -122,7 +122,7 @@ function GameCanvasSection({
 
   }, [strokes]);
 
-  // 좌표 계산
+  // 마우스 좌표 계산
   const getMousePosition = (e) => {
 
     const canvas = canvasRef.current;
@@ -337,6 +337,8 @@ const handleTouchEnd = () => {
 
   ]);
 
+  socketClient.emit('draw_data', newStroke);
+
   setCurrentStroke(null);
 
 };
@@ -402,6 +404,64 @@ const handleTouchEnd = () => {
 
     setStrokes((prev) => prev.slice(0, -1));
     socketClient.emit('undo_draw');
+  };
+
+  // 터치 시작
+  const handleTouchStart = (e) => {
+
+    if (!isDrawer) return;
+
+    const pos = getTouchPosition(e);
+
+    if (currentTool === "eraser") {
+
+      eraseStroke(pos);
+
+      return;
+    }
+
+    setIsDrawing(true);
+
+    setCurrentStroke({
+
+      points: [pos],
+
+      color: currentColor,
+
+      width: PEN_WIDTH,
+
+      tool: "pen"
+
+    });
+  };
+
+  // 터치 이동
+  const handleTouchMove = (e) => {
+
+    if (!isDrawing) return;
+
+    const newPoint = getTouchPosition(e);
+
+    setCurrentStroke((prev) => {
+
+      const updatedStroke = {
+
+        ...prev,
+
+        points: [...prev.points, newPoint]
+
+      };
+
+      redrawCanvas(updatedStroke);
+
+      return updatedStroke;
+    });
+  };
+
+  // 터치 종료 → 마우스와 동일하게 draw_data emit
+  const handleTouchEnd = () => {
+
+    handleMouseUp();
   };
 
   const eraseStroke = (clickPos) => {
