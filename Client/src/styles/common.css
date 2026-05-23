@@ -45,3 +45,32 @@ body {
 
   border-radius: var(--radius);
 }
+
+@media (max-width: 992px) {
+
+  :root {
+
+    --ui-scale: 520px;
+
+    --left-width: 200px;
+
+    --right-width: 160px;
+
+    --outer-gap: 16px;
+
+    --inner-gap: 12px;
+  }
+
+  .game-layout {
+
+    display: grid;
+  
+    grid-template-columns:
+      var(--left-width)
+      var(--ui-scale)
+      var(--right-width);
+  
+    gap: var(--inner-gap);
+  }
+
+}

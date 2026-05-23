@@ -1,3 +1,4 @@
+import "../styles/GameCanvasSection.css";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -220,6 +221,126 @@ function GameCanvasSection({
     setCurrentStroke(null);
   };
 
+  /* Touch Event(모바일 웹 용) */
+
+const getTouchPosition = (touch) => {
+
+  const canvas = canvasRef.current;
+
+  const rect = canvas.getBoundingClientRect();
+
+  return {
+
+    x: (touch.clientX - rect.left) * (canvas.width / rect.width),
+
+    y: (touch.clientY - rect.top) * (canvas.height / rect.height)
+
+  };
+
+};
+
+
+const handleTouchStart = (e) => {
+
+  e.preventDefault();
+
+  if (!isDrawer) {
+    return;
+  }
+
+  const touch = e.touches[0];
+
+  const pos = getTouchPosition(touch);
+
+  if (currentTool === "eraser") {
+
+    eraseStroke(pos);
+
+    return;
+  }
+
+  setIsDrawing(true);
+
+  setCurrentStroke({
+
+    points: [pos],
+
+    color: currentColor,
+
+    width: PEN_WIDTH,
+
+    tool: "pen"
+
+  });
+
+};
+
+
+const handleTouchMove = (e) => {
+
+  e.preventDefault();
+
+  if (!isDrawing) {
+    return;
+  }
+
+  const touch = e.touches[0];
+
+  const newPoint = getTouchPosition(touch);
+
+  setCurrentStroke((prev) => {
+
+    const updatedStroke = {
+
+      ...prev,
+
+      points: [
+
+        ...prev.points,
+
+        newPoint
+
+      ]
+
+    };
+
+    redrawCanvas(updatedStroke);
+
+    return updatedStroke;
+
+  });
+
+};
+
+
+const handleTouchEnd = () => {
+
+  if (!isDrawing || !currentStroke) {
+    return;
+  }
+
+  setIsDrawing(false);
+
+  const newStroke = {
+
+    id: Date.now(),
+
+    ...currentStroke
+
+  };
+
+  setStrokes((prev) => [
+
+    ...prev,
+
+    newStroke
+
+  ]);
+
+  setCurrentStroke(null);
+
+};
+
   // canvas 다시 그리기
   const redrawCanvas = (tempStroke = null) => {
 
@@ -319,8 +440,7 @@ function GameCanvasSection({
   };
 
   return (
-
-    <div className="canvas-section">
+    <div className="canvas-section mobile-canvas-area">
 
       {/* 주제 (출제자에게만 표시) */}
       <div className="topic-box common-box">
@@ -333,7 +453,6 @@ function GameCanvasSection({
 
       </div>
 
-      {/* 캔버스 */}
       <div className="canvas-box common-box">
 
         <canvas
@@ -341,112 +460,101 @@ function GameCanvasSection({
           ref={canvasRef}
 
           width={600}
-
           height={400}
 
-          style={{
-            width: "100%",
-            height: "100%",
-            backgroundColor: "white",
-
-            cursor:
-
-              currentTool === "eraser"
-                ? "pointer"
-                : (
-                  isDrawer
-                    ? "crosshair"
-                    : "not-allowed"
-                )
-          }}
+          className={`
+            game-canvas
+            ${currentTool === "eraser"
+              ? "cursor-eraser"
+              : (
+                isDrawer
+                  ? "cursor-draw"
+                  : "cursor-disabled"
+              )
+            }
+          `}
 
           onMouseDown={handleMouseDown}
-
           onMouseMove={handleMouseMove}
-
           onMouseUp={handleMouseUp}
-
           onMouseLeave={handleMouseUp}
+
+          // 모바일 캔버스 구현
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         />
 
       </div>
 
-      {/* 툴바 */}
       <div className="toolbar">
 
-        {/* 검정 펜 */}
         <button
           className="tool-button"
-
           onClick={() => {
 
             setCurrentColor("#000000");
 
             setCurrentTool("pen");
+
           }}
         >
           <Pencil
-            size={24}
+            className="tool-icon"
             strokeWidth={1.5}
           />
         </button>
 
-        {/* 파랑 펜 */}
         <button
           className="tool-button blue"
-
           onClick={() => {
 
             setCurrentColor("#0000ff");
 
             setCurrentTool("pen");
+
           }}
         >
           <Pencil
-            size={24}
+            className="tool-icon"
             color="blue"
             strokeWidth={1.5}
           />
         </button>
 
-        {/* 빨강 펜 */}
         <button
           className="tool-button red"
-
           onClick={() => {
 
             setCurrentColor("#ff0000");
 
             setCurrentTool("pen");
+
           }}
         >
           <Pencil
-            size={24}
+            className="tool-icon"
             color="red"
             strokeWidth={1.5}
           />
         </button>
 
-        {/* 지우개 */}
         <button
           className="tool-button"
-
           onClick={() => setCurrentTool("eraser")}
         >
           <Eraser
-            size={24}
+            className="tool-icon"
             strokeWidth={1.5}
           />
         </button>
 
-        {/* undo */}
         <button
           className="tool-button"
-
           onClick={handleUndo}
         >
           <Undo2
-            size={24}
+            className="tool-icon"
             strokeWidth={1.5}
           />
         </button>
