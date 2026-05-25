@@ -131,6 +131,8 @@
   width: 24px;
 
   height: 24px;
+
+  color: #333;
 }
 
 /* 툴바 버튼 */
@@ -159,6 +161,8 @@
   flex-shrink: 0;
 
   cursor: pointer;
+
+  color: #333;
 
   font-size: calc(var(--ui-scale) * 0.03);
 
