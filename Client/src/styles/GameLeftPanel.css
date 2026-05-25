@@ -84,6 +84,8 @@
     outline: none;
   
     background: transparent;
+
+    color: #000;
   
     font-size: calc( 15px * var(--scale));
   
@@ -93,6 +95,11 @@
 
     box-sizing: border-box;
     
+  }
+
+  .chat-input::placeholder {
+
+    color: #888;
   }
   
   .chat-send-button {
