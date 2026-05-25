@@ -1,6 +1,7 @@
 import "../styles/StartScreen.css";
 import { useEffect, useState } from "react";
 
+import startPageImg from "../assets/StartPage.png";
 import StartNicknameModal from "./StartNicknameModal";
 import StartLoadingModal from "./StartLoadingModal";
 import { useSocketStore } from "../stores/useSocketStore";
@@ -51,9 +52,7 @@ function StartScreen() {
 
           {/* 아이콘 */}
           <div className="start-icon">
-
-            아이콘 영역
-
+            <img src={startPageImg} alt="High-Five" />
           </div>
 
           {/* 시작 버튼 */}
