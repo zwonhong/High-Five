@@ -1,189 +1,267 @@
 /* 전체 화면 */
 .start-screen-wrapper {
 
-    width: 100%;
-  
-    min-height: 100dvh;
-  
-    background: #c3ffff;
-  
-    display: flex;
-  
-    justify-content: center;
-  
-    align-items: center;
-  
-    padding: 20px;
-  
-    box-sizing: border-box;
-  }
-  
-  
-  /* 메인 박스 */
-  .start-screen-container {
-  
-    width: 100%;
-  
-    height: 90dvh;
-  
-    border: 2px solid black;
-  
-    position: relative;
-  
-    display: flex;
-  
-    justify-content: center;
-  
-    align-items: center;
-  
-    background: rgba(255,255,255,0.15);
-  
-    border-radius: 32px;
-  
-    overflow: hidden;
-  
-    box-sizing: border-box;
-  }
-  
-  
-  /* 내부 콘텐츠 */
-  
-  .start-content {
-  
-    display: flex;
-  
-    flex-direction: column;
-  
-    align-items: center;
-  }
-  
-  
-  /* 아이콘 */
-  
-  .start-icon {
-  
-    width: 250px;
-  
-    height: 250px;
-  
-    border: 2px solid black;
-  
-    border-radius: 50%;
-  
-    display: flex;
-  
-    justify-content: center;
-  
-    align-items: center;
-  
-    background: white;
-  
-    font-size: 24px;
-  }
-  
-  
-  /* 시작 버튼 */
-  
-  .start-button {
-  
-    width: 300px;
-  
-    height: 80px;
-  
-    margin-top: -20px;
-  
-    border: 2px solid black;
-  
-    border-radius: 20px;
-  
-    background: white;
-  
-    font-size: 28px;
-  
-    cursor: pointer;
-  
-    transition: 0.15s;
-  
-    box-shadow:
-      0 4px 12px rgba(0,0,0,0.12);
-  }
-  
-  
-  /* hover */
-  
-  .start-button:hover {
-  
-    background: #00e3e3;
-  
-    transform: translateY(-2px);
-  }
-  
-  
-  /* active */
-  
-  .start-button:active {
-  
-    transform: scale(0.98);
-  }
-  
-  /* 태블릿 */
-  @media (max-width: 992px) {
-  
-    .start-icon {
-  
-      width: 220px;
-  
-      height: 220px;
-  
-      font-size: 22px;
-    }
-  
-    .start-button {
-  
-      width: 260px;
-  
-      height: 72px;
-  
-      font-size: 24px;
-    }
-  
+  width: 100%;
+
+  min-height: 100dvh;
+
+  background: #c3ffff;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  padding: clamp(12px, 2vw, 24px);
+
+  box-sizing: border-box;
+}
+
+
+/* 메인 박스 */
+.start-screen-container {
+
+  width: 100%;
+
+  height: 90dvh;
+
+  border: 2px solid black;
+
+  position: relative;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  background: rgba(255,255,255,0.15);
+
+  border-radius: clamp(20px, 2vw, 32px);
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+}
+
+
+/* 내부 콘텐츠 */
+.start-content {
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: clamp(16px, 2vw, 36px);
+
+  width: 100%;
+
+  height: 100%;
+}
+
+
+/* 원형 텍스트 + 아이콘 묶음 */
+.start-icon-wrapper {
+
+  position: relative;
+
+  width: clamp(260px, 38vw, 560px);
+
+  aspect-ratio: 1 / 1;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  flex-shrink: 0;
+}
+
+
+/* SVG 전체 */
+.circle-text {
+
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  overflow: visible;
+
+  z-index: 3;
+
+  pointer-events: none;
+
+  animation: spinText 4.5s linear infinite;
+
+  transform-origin: center center;
+}
+
+
+/* arc 텍스트 스타일 */
+.arc-text textPath {
+
+  font-size: clamp(42px, 7vw, 100px);
+
+  font-weight: 900;
+
+  letter-spacing: clamp(-6px, -0.8vw, -13px);
+
+  fill: #00e3e3;
+
+  font-family:
+    "Arial Black",
+    sans-serif;
+
+  filter:
+    drop-shadow(0 2px 2px rgba(0,0,0,0.15));
+}
+
+
+/* 아이콘 */
+.start-icon {
+
+  width: 45%;
+
+  aspect-ratio: 1 / 1;
+
+  border: 2px solid black;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  background: white;
+
+  overflow: hidden;
+
+  z-index: 2;
+}
+
+
+/* 이미지 */
+.start-icon img {
+
+  width: 100%;
+
+  height: 100%;
+
+  object-fit: contain;
+}
+
+
+/* 시작 버튼 */
+.start-button {
+
+  width: clamp(220px, 24vw, 320px);
+
+  height: clamp(60px, 7vw, 84px);
+
+  border: 2px solid black;
+
+  border-radius: 20px;
+
+  background: white;
+
+  color: #333;
+
+  font-size: clamp(18px, 2vw, 30px);
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.12);
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+/* hover */
+.start-button:hover {
+
+  background: #00e3e3;
+
+  transform: translateY(-2px);
+}
+
+
+/* active */
+.start-button:active {
+
+  transform: scale(0.98);
+}
+
+
+/* 하단 제작자 */
+.made-by {
+
+  position: absolute;
+
+  bottom: clamp(14px, 2vw, 24px);
+
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  font-size: clamp(12px, 1vw, 16px);
+
+  color: #444;
+
+  letter-spacing: 1px;
+
+  white-space: nowrap;
+}
+
+
+/* 회전 애니메이션 */
+@keyframes spinText {
+
+  from {
+
+    transform: rotate(0deg);
   }
 
-  /* 모바일 */
-  @media (max-width: 576px) {
-  
-    .start-screen-wrapper {
-  
-      padding: 12px;
-    }
-  
-    .start-screen-container {
-  
-      height: 100dvh;
-  
-      border-radius: 20px;
-    }
-  
-    .start-icon {
-  
-      width: 160px;
-  
-      height: 160px;
-  
-      font-size: 18px;
-    }
-  
-    .start-button {
-  
-      width: 200px;
-  
-      height: 56px;
-  
-      margin-top: -10px;
-  
-      font-size: 16px;
-  
-      border-radius: 14px;
-    }
-  
+  to {
+
+    transform: rotate(360deg);
   }
+}
+
+
+/* 모바일 높이 대응 */
+@media (max-height: 700px) {
+
+  .start-screen-container {
+
+    height: 100dvh;
+  }
+
+  .start-content {
+
+    gap: 12px;
+  }
+
+  .made-by {
+
+    bottom: 12px;
+  }
+}
