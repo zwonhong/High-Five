@@ -1,99 +1,124 @@
-import { useState } from "react";
+import "../styles/StartScreen.css";
+import { useEffect, useState } from "react";
 
+import startPageImg from "../assets/StartPage.png";
 import StartNicknameModal from "./StartNicknameModal";
 import StartLoadingModal from "./StartLoadingModal";
+import { useSocketStore } from "../stores/useSocketStore";
+import { joinAutoRoom } from "../socket/socketActions";
 
-function StartScreen({
-  nickname,
-  setNickname,
-  setGameStarted
-}) {
+function StartScreen() {
 
+  // 닉네임
+  const nickname = useSocketStore((state) => state.nickname);
+
+  // 서버 에러 메시지
+  const errorMessage = useSocketStore((state) => state.errorMessage);
+  const clearErrorMessage = useSocketStore((state) => state.clearErrorMessage);
+
+  // 닉네임 모달 표시 여부
   const [showModal, setShowModal] = useState(false);
 
+  // 서버 대기 중 여부
   const [isWaiting, setIsWaiting] = useState(false);
 
-  /* useEffect(() => {
+  // 에러 발생 시 다시 닉네임 모달
+  useEffect(() => {
+    if (errorMessage && isWaiting) {
+      setIsWaiting(false);
+      setShowModal(true);
+    }
+  }, [errorMessage, isWaiting]);
 
-  socket.on("game_start", () => {
-
-    console.log("game_start 수신");
-
-    setIsWaiting(false);
-
-    setGameStarted(true);
-
-  });
-
-  return () => {
-    socket.off("game_start");
-  };
-
-  }, [socket]); 
-  */
-
+  // 입장 버튼
   const handleJoinGame = () => {
 
-    console.log("입장 버튼 클릭");
+    clearErrorMessage();
 
-    //닉네임 모달 닫고, 로딩 모달 실행
+    const success = joinAutoRoom(nickname);
+
+    if (!success) {
+      return;
+    }
+
     setShowModal(false);
-
     setIsWaiting(true);
-
-    // 임시 서버 대기(테스트용)
-    setTimeout(() => {
-
-      setIsWaiting(false);
-      setGameStarted(true);
-
-    }, 2000);
-
-    /* // 실제 소켓 연결 시
-    socket.emit("game_wait", {
-      nickname
-    });
-    */
-
   };
 
   return (
 
-    <div className="container-fluid p-4">
+    <div className="start-screen-wrapper">
 
-      <div
-        className="border border-dark d-flex justify-content-center align-items-center position-relative"
-        style={{
-          height: "90vh"
-        }}
-      >
+      <div className="start-screen-container">
 
-        {/* 메인 화면 */}
-        <div className="d-flex flex-column align-items-center">
+        {/* 하단 제작자 표시 */}
+        <div className="made-by">
+          made by High-Five
+        </div>
 
-          <div
-            className="border border-dark rounded-circle d-flex justify-content-center align-items-center"
-            style={{
-              width: "250px",
-              height: "250px"
-            }}
-          >
-            아이콘 영역
+        {/* 메인 콘텐츠 */}
+        <div className="start-content">
+
+          {/* 원형 로고 영역 */}
+          <div className="start-icon-wrapper">
+
+            {/* 원형 텍스트 */}
+            <svg
+              className="circle-text"
+              viewBox="0 0 500 500"
+            >
+
+              <defs>
+
+                {/* 위쪽 반원 */}
+                <path
+                  id="topArc"
+                  d="
+                    M 35 250
+                    A 215 215 0 0 1 465 250
+                  "
+                  fill="none"
+                />
+
+              </defs>
+
+              {/* 위 텍스트 */}
+              <text className="arc-text">
+
+                <textPath
+                  href="#topArc"
+                  startOffset="50%"
+                  textAnchor="middle"
+                >
+
+                  CATCH MIND
+
+                </textPath>
+
+              </text>
+
+            </svg>
+
+            {/* 아이콘 */}
+            <div className="start-icon">
+
+              <img
+                src={startPageImg}
+                alt="High-Five"
+              />
+
+            </div>
+
           </div>
 
+          {/* 시작 버튼 */}
           <button
-            className="btn btn-light border border-dark"
-            style={{
-              width: "300px",
-              height: "80px",
-              marginTop: "-20px",
-              fontSize: "28px",
-              borderRadius: "20px"
-            }}
-
+            className="start-button"
             onClick={() => setShowModal(true)}
           >
+
             게임 시작하기
+
           </button>
 
         </div>
@@ -101,11 +126,12 @@ function StartScreen({
         {/* 닉네임 모달 */}
         {
           showModal && (
+
             <StartNicknameModal
-              nickname={nickname}
-              setNickname={setNickname}
               onJoinGame={handleJoinGame}
+              errorMessage={errorMessage}
             />
+
           )
         }
 
@@ -119,6 +145,7 @@ function StartScreen({
       </div>
 
     </div>
+
   );
 }
 
