@@ -1,7 +1,16 @@
-function GameEndModal({
-  gameEndData,
-  setGameStarted
-}) {
+import { useGamePhaseStore } from "../stores/useGamePhaseStore";
+import { useSocketStore } from "../stores/useSocketStore";
+
+function GameEndModal({ gameEndData }) {
+
+  const goToStart = useGamePhaseStore((state) => state.goToStart);
+  // 게임 시작 시 저장된 플레이어 목록 (socketId → nickname 매핑용)
+  const gamePlayers = useSocketStore((state) => state.gamePlayers);
+
+  // scores({ socketId: score })를 닉네임 기준 순위로 변환
+  const sortedScores = gamePlayers
+    .map((p) => ({ nickname: p.nickname, score: gameEndData.scores[p.id] || 0 }))
+    .sort((a, b) => b.score - a.score);
 
   return (
 
@@ -25,50 +34,21 @@ function GameEndModal({
           게임 종료
         </h2>
 
-        {/* 최종 순위 */}
+        {/* 우승자 */}
+        <h3 className="mt-3">
+          🏆 {gameEndData.winner.nickname} 우승!
+        </h3>
+
+        {/* 최종 점수 순위 */}
         <div className="w-100 mt-4">
 
           <h4>최종 순위</h4>
 
           {
-            gameEndData.ranking.map((user, index) => (
+            sortedScores.map((scoreData, index) => (
 
               <div key={index}>
-                {index + 1}등 - {user}
-              </div>
-
-            ))
-          }
-
-        </div>
-
-        {/* 최종 점수 */}
-        <div className="w-100 mt-4">
-
-          <h4>최종 점수</h4>
-
-          {
-            gameEndData.finalScores.map((scoreData, index) => (
-
-              <div key={index}>
-                {scoreData.user} : {scoreData.score}점
-              </div>
-
-            ))
-          }
-
-        </div>
-
-        {/* 라운드 결과 */}
-        <div className="w-100 mt-4">
-
-          <h4>라운드 결과</h4>
-
-          {
-            gameEndData.roundResults.map((result, index) => (
-
-              <div key={index}>
-                ROUND {result.round} - {result.winner}
+                {index + 1}등 - {scoreData.nickname} : {scoreData.score}점
               </div>
 
             ))
@@ -78,10 +58,7 @@ function GameEndModal({
 
         <button
           className="btn btn-primary mt-4"
-          onClick={() => {
-
-            setGameStarted(false);
-          }}
+          onClick={goToStart}
         >
           처음으로
         </button>

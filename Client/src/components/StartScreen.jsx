@@ -6,6 +6,8 @@ import StartNicknameModal from "./StartNicknameModal";
 import StartLoadingModal from "./StartLoadingModal";
 import { useSocketStore } from "../stores/useSocketStore";
 import { joinAutoRoom } from "../socket/socketActions";
+import { useSocketStore } from "../stores/useSocketStore";
+import { joinAutoRoom } from "../socket/socketActions";
 
 function StartScreen() {
 
@@ -32,6 +34,7 @@ function StartScreen() {
 
   // 입장 버튼
   const handleJoinGame = () => {
+    const success = joinAutoRoom(nickname);
 
     clearErrorMessage();
 
@@ -130,6 +133,7 @@ function StartScreen() {
             <StartNicknameModal
               onJoinGame={handleJoinGame}
               errorMessage={errorMessage}
+              errorMessage={errorMessage}
             />
 
           )
@@ -150,3 +154,4 @@ function StartScreen() {
 }
 
 export default StartScreen;
+
