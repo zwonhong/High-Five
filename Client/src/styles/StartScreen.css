@@ -1,200 +1,298 @@
 /* 전체 화면 */
 .start-screen-wrapper {
 
-    width: 100%;
-  
-    min-height: 100dvh;
-  
-    background: #c3ffff;
-  
-    display: flex;
-  
-    justify-content: center;
-  
-    align-items: center;
-  
-    padding: 20px;
-  
-    box-sizing: border-box;
+  width: 100%;
+
+  min-height: 100dvh;
+
+  background: #c3ffff;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  padding: 20px;
+
+  box-sizing: border-box;
+}
+
+
+/* 메인 박스 */
+.start-screen-container {
+
+  width: 100%;
+
+  height: 90dvh;
+
+  border: 2px solid black;
+
+  position: relative;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  background: rgba(255,255,255,0.15);
+
+  border-radius: 32px;
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+}
+
+
+/* 내부 콘텐츠 */
+.start-content {
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+}
+
+
+/* 원형 텍스트 + 아이콘 묶음 */
+.start-icon-wrapper {
+
+  position: relative;
+
+  width: 560px;
+
+  height: 560px;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+}
+
+
+/* SVG 전체 */
+.circle-text {
+
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  overflow: visible;
+
+  z-index: 3;
+
+  pointer-events: none;
+
+  animation: spinText 4.5s ease-in-out infinite;
+
+  transform-origin: center;
+}
+
+
+/* arc 텍스트 스타일 */
+.arc-text textPath {
+
+  font-size: 100px;
+
+  font-weight: 900;
+
+  letter-spacing: -13px;
+
+  fill: #00e3e3;
+
+  font-family:
+    "Arial Black",
+    sans-serif;
+
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15));
+}
+
+/* 아이콘 */
+.start-icon {
+
+  width: 250px;
+
+  height: 250px;
+
+  border: 2px solid black;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  background: white;
+
+  overflow: hidden;
+
+  z-index: 2;
+}
+
+.start-icon img {
+
+  width: 100%;
+
+  height: 100%;
+
+  object-fit: contain;
+}
+
+
+/* 시작 버튼 */
+.start-button {
+
+  width: 300px;
+
+  height: 80px;
+
+  margin-top: 40px;
+
+  border: 2px solid black;
+
+  border-radius: 20px;
+
+  background: white;
+
+  color: #333;
+
+  font-size: 28px;
+
+  cursor: pointer;
+
+  transition: 0.15s;
+
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.12);
+}
+
+
+/* hover */
+.start-button:hover {
+
+  background: #00e3e3;
+
+  transform: translateY(-2px);
+}
+
+
+/* active */
+.start-button:active {
+
+  transform: scale(0.98);
+}
+
+
+/* 하단 제작자 */
+.made-by {
+
+  position: absolute;
+
+  bottom: 20px;
+
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  font-size: 14px;
+
+  color: #444;
+
+  letter-spacing: 1px;
+}
+
+@keyframes spinText {
+
+  from {
+
+    transform: rotate(0deg);
   }
-  
-  
-  /* 메인 박스 */
-  .start-screen-container {
-  
-    width: 100%;
-  
-    height: 90dvh;
-  
-    border: 2px solid black;
-  
-    position: relative;
-  
-    display: flex;
-  
-    justify-content: center;
-  
-    align-items: center;
-  
-    background: rgba(255,255,255,0.15);
-  
-    border-radius: 32px;
-  
-    overflow: hidden;
-  
-    box-sizing: border-box;
+
+  to {
+
+    transform: rotate(360deg);
   }
-  
-  
-  /* 내부 콘텐츠 */
-  
-  .start-content {
-  
-    display: flex;
-  
-    flex-direction: column;
-  
-    align-items: center;
+}
+
+
+/* 태블릿 */
+@media (max-width: 992px) {
+
+  .start-icon-wrapper {
+
+    width: 280px;
+
+    height: 280px;
   }
-  
-  
-  /* 아이콘 */
-  
+
   .start-icon {
-  
-    width: 250px;
-  
-    height: 250px;
-  
-    border: 2px solid black;
-  
-    border-radius: 50%;
-  
-    display: flex;
-  
-    justify-content: center;
-  
-    align-items: center;
-  
-    background: white;
 
-    overflow: hidden;
+    width: 220px;
+
+    height: 220px;
   }
 
-  .start-icon img {
+  .circle-text text {
 
-    width: 100%;
+    font-size: 18px;
 
-    height: 100%;
-
-    object-fit: contain;
+    letter-spacing: 6px;
   }
-  
-  
-  /* 시작 버튼 */
-  
+
   .start-button {
-  
-    width: 300px;
-  
-    height: 80px;
-  
-    margin-top: -20px;
-  
-    border: 2px solid black;
-  
-    border-radius: 20px;
-  
-    background: white;
 
-    color: #333;
-  
-    font-size: 28px;
-  
-    cursor: pointer;
-  
-    transition: 0.15s;
-  
-    box-shadow:
-      0 4px 12px rgba(0,0,0,0.12);
+    width: 260px;
+
+    height: 72px;
+
+    font-size: 24px;
   }
-  
-  
-  /* hover */
-  
-  .start-button:hover {
-  
-    background: #00e3e3;
-  
-    transform: translateY(-2px);
-  }
-  
-  
-  /* active */
-  
-  .start-button:active {
-  
-    transform: scale(0.98);
-  }
-  
-  /* 태블릿 */
-  @media (max-width: 992px) {
-  
-    .start-icon {
-  
-      width: 220px;
-  
-      height: 220px;
-  
-      font-size: 22px;
-    }
-  
-    .start-button {
-  
-      width: 260px;
-  
-      height: 72px;
-  
-      font-size: 24px;
-    }
-  
+}
+
+
+/* 모바일 */
+@media (max-width: 576px) {
+
+  .start-icon-wrapper {
+
+    width: 340px;
+
+    height: 340px;
   }
 
-  /* 모바일 */
-  @media (max-width: 576px) {
-  
-    .start-screen-wrapper {
-  
-      padding: 12px;
-    }
-  
-    .start-screen-container {
-  
-      height: 100dvh;
-  
-      border-radius: 20px;
-    }
-  
-    .start-icon {
-  
-      width: 160px;
-  
-      height: 160px;
-  
-      font-size: 18px;
-    }
-  
-    .start-button {
-  
-      width: 200px;
-  
-      height: 56px;
-  
-      margin-top: -10px;
-  
-      font-size: 16px;
-  
-      border-radius: 14px;
-    }
-  
+  .start-icon {
+
+    width: 180px;
+
+    height: 180px;
   }
+
+  .arc-text {
+
+    font-size: 38px;
+
+    letter-spacing: 5px;
+  }
+
+  .arc-text textPath {
+
+    font-size: 38px;
+
+    letter-spacing: 5px;
+  }
+
+  .start-button {
+
+    margin-top: 24px;
+  }
+}
