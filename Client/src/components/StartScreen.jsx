@@ -32,9 +32,7 @@ function StartScreen() {
 
   // 입장 버튼
   const handleJoinGame = () => {
-
     clearErrorMessage();
-
     const success = joinAutoRoom(nickname);
 
     if (!success) {
