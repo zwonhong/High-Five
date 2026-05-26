@@ -1,11 +1,28 @@
 const { Server } = require('socket.io');
 const { createClient } = require("redis"); // 멀티 서버를 위한 redis 클라이언트 추가
 const { createAdapter } = require("@socket.io/redis-adapter"); // 멀티 서버를 위한 redis 어댑터 추가
-const { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, reconnectUser } = require('./roomManager');
+const { findOrCreateRoom, addUserToRoom, removeUserFromRoom, markUserInactive, reconnectUser, resetRoomAfterGame } = require('./roomManager');
 // errorHandling
 const { redisConfig, handleRedisError, emitError } = require('./errorHandler');
-const { cleanupGhostUsers } = require('./sessionCleaner');
-const { startGame, assignTopic, checkAnswer, endRound, deleteGameState, TIMER_DURATION } = require('./gameManager');
+const { cleanupGhostUsers, cleanupRoomGhosts } = require('./sessionCleaner');
+const {
+    startGame,
+    assignTopic,
+    checkAnswer,
+    endRound,
+    deleteGameState,
+    markPlayerInactive,
+    removePlayerFromGame,
+    reactivatePlayer,
+    addStroke,
+    clearCurrentStrokes,
+    popLastStroke,
+    removeStrokesByIds,
+    addChatLog,
+    getReconnectSnapshot,
+    getGameState,
+    TIMER_DURATION,
+} = require('./gameManager');
 
 const reconnectionTimers = new Map(); // socketId -> setTimeout 객체
 const roundTimers = new Map(); // roomId → 라운드 타이머 (오케스트레이션 단순화 전까지 socket 측 보관)
@@ -28,37 +45,71 @@ module.exports = async (server) => {
 
     let adapterMounted = false;
 
-    // 재연결 시 어댑터를 안전하게 다시 장착하기 위한 함수
-    // 어댑터 장착 로직을 별도 함수로 분리
     const mountRedisAdapter = async () => {
-        // 두 소켓이 모두 'Ready' 상태인지 직접 확인
-        if (pubClient.isReady && subClient.isReady) {
-            try {
-                const adapter = createAdapter(pubClient, subClient);
-                io.adapter(adapter);
-                adapterMounted = true;
-                console.log("[SYSTEM] Redis Reconnected & Adapter Swapped!");
-                
-                // 어댑터가 재장착되면 유령 유저 정리 함수를 호출하여 Redis에 남아있는 유령 유저를 제거합니다.
-                // Call the ghost user cleanup function to remove any ghost users remaining in Redis after the adapter is remounted.
-                await cleanupGhostUsers(io, pubClient);
-            
-            } catch (e) {
-                console.error("[SYSTEM] Adapter Mount Error:", e);
-            }
+        if (!pubClient.isReady || !subClient.isReady) return false;
+
+        try {
+            io.adapter(createAdapter(pubClient, subClient));
+            adapterMounted = true;
+            console.log('[SYSTEM] Redis adapter mounted');
+            await cleanupGhostUsers(io, pubClient);
+            return true;
+        } catch (e) {
+            console.error('[SYSTEM] Adapter Mount Error:', e);
+            adapterMounted = false;
+            return false;
         }
     };
 
-    // 두 클라이언트 모두에 'ready' 리스너 등록
-    pubClient.on('ready', mountRedisAdapter);
-    subClient.on('ready', mountRedisAdapter);
+    const waitUntilRedisReady = (client) =>
+        new Promise((resolve, reject) => {
+            if (client.isReady) return resolve();
+            const onReady = () => {
+                client.off('error', onError);
+                resolve();
+            };
+            const onError = (err) => {
+                client.off('ready', onReady);
+                reject(err);
+            };
+            client.once('ready', onReady);
+            client.once('error', onError);
+        });
 
-    // [중요] 연결이 끊겼을 때 로그를 찍어 상태를 모니터링합니다.
     pubClient.on('error', () => { adapterMounted = false; });
+    pubClient.on('ready', () => {
+        if (!adapterMounted) mountRedisAdapter();
+    });
+    subClient.on('ready', () => {
+        if (!adapterMounted) mountRedisAdapter();
+    });
 
-    // 초기 연결 시도
-    pubClient.connect().catch(() => {});
-    subClient.connect().catch(() => {});
+    await pubClient.connect();
+    await subClient.connect();
+    await Promise.all([waitUntilRedisReady(pubClient), waitUntilRedisReady(subClient)]);
+    await mountRedisAdapter();
+
+    const emitRoomUpdate = (roomId, users) => {
+        io.to(roomId).emit('room_update', { roomId, users });
+    };
+
+    const emitRoundStart = (roomId, topicData) => {
+        const { topic, currentRound, totalRounds, drawer, timeLeft, roundEndsAt } = topicData;
+        const base = { currentRound, totalRounds, drawer, timeLeft, roundEndsAt };
+        io.to(roomId).except(drawer.id).emit('round_start', base);
+        io.to(drawer.id).emit('round_start', { ...base, topic });
+    };
+
+    const cancelRoomReconnectionTimers = (users) => {
+        if (!users) return;
+        for (const u of users) {
+            const pending = reconnectionTimers.get(u.id);
+            if (pending) {
+                clearTimeout(pending);
+                reconnectionTimers.delete(u.id);
+            }
+        }
+    };
 
     const clearTimer = (roomId) => {
         const t = roundTimers.get(roomId);
@@ -68,13 +119,18 @@ module.exports = async (server) => {
         }
     };
 
-    const startTimer = (roomId, onTimeout) => {
+    const startTimer = async (roomId, onTimeout) => {
         clearTimer(roomId);
+        const gameState = await getGameState(pubClient, roomId);
+        const delay = gameState?.roundEndsAt
+            ? Math.max(0, gameState.roundEndsAt - Date.now())
+            : TIMER_DURATION * 1000;
+
         roundTimers.set(
             roomId,
             setTimeout(() => {
                 Promise.resolve(onTimeout(roomId)).catch((e) => console.error('[TIMER]', e));
-            }, TIMER_DURATION * 1000)
+            }, delay)
         );
     };
 
@@ -83,6 +139,15 @@ module.exports = async (server) => {
             clearTimer(roomId);
             await deleteGameState(pubClient, roomId);
         }
+    };
+
+    const refreshRoundAfterDrawerChange = async (roomId) => {
+        clearTimer(roomId);
+        const topicData = await assignTopic(pubClient, roomId);
+        if (!topicData) return;
+
+        emitRoundStart(roomId, topicData);
+        startTimer(roomId, handleRoundEnd);
     };
 
     // 라운드 종료 처리 (타이머 만료 or 모두 정답)
@@ -94,16 +159,41 @@ module.exports = async (server) => {
         io.to(roomId).emit('round_end', result.roundResult);
 
         if (result.isGameOver) {
-            io.to(roomId).emit('game_end', { scores: result.scores, winner: result.winner });
+            const roomRaw = await pubClient.get(roomId);
+            if (roomRaw) {
+                cancelRoomReconnectionTimers(JSON.parse(roomRaw).users);
+            }
+
+            let roomAfterReset = null;
+            if (result.roomResetNeeded) {
+                roomAfterReset = await resetRoomAfterGame(pubClient, roomId);
+            }
+
+            // 게임 종료 후: 10초 유예 중인 끊긴 소켓도 Redis·UI에서 제거 (실제 연결만 남김)
+            const roomAfterGhostPurge = await cleanupRoomGhosts(io, pubClient, roomId);
+            if (roomAfterGhostPurge) {
+                roomAfterReset = roomAfterGhostPurge;
+            } else if (roomAfterGhostPurge === null && roomAfterReset) {
+                roomAfterReset = null;
+            }
+
+            io.to(roomId).emit('game_end', {
+                scores: result.scores,
+                winner: result.winner,
+                roomId,
+                users: roomAfterReset?.users,
+            });
+
+            if (roomAfterReset) {
+                emitRoomUpdate(roomId, roomAfterReset.users);
+            }
         } else {
             await new Promise((r) => setTimeout(r, 1500));
             io.to(roomId).emit('next_round', result.nextRound);
 
             const topicData = await assignTopic(pubClient, roomId);
             if (topicData) {
-                const { topic, currentRound, totalRounds, drawer } = topicData;
-                io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
-                io.to(drawer.id).emit('round_start', { currentRound, totalRounds, drawer, topic });
+                emitRoundStart(roomId, topicData);
                 startTimer(roomId, handleRoundEnd);
             }
         }
@@ -128,9 +218,13 @@ module.exports = async (server) => {
                     socket.currentRoom = roomId;
                     socket.nickname = nickname;
 
+                    await reactivatePlayer(pubClient, roomId, oldSocketId, socket.id);
+
+                    const gameSnapshot = await getReconnectSnapshot(pubClient, roomId, socket.id);
+
                     // 3. 본인 및 방 인원들에게 복구 알림
-                    socket.emit('reconnect_success', { roomId, users: room.users });
-                    io.to(roomId).emit('room_update', { roomId, users: room.users });
+                    socket.emit('reconnect_success', { roomId, users: room.users, ...gameSnapshot });
+                    emitRoomUpdate(roomId, room.users);
                     console.log(`[RECONNECT] ${nickname} returned to ${roomId}`);
                 }
             } else {
@@ -148,6 +242,8 @@ module.exports = async (server) => {
             
             
                 const roomId = await findOrCreateRoom(pubClient);
+                await cleanupRoomGhosts(io, pubClient, roomId);
+
                 const result = await addUserToRoom(pubClient, roomId, { id: socket.id, nickname });
 
                 if (result.success) {
@@ -158,7 +254,7 @@ module.exports = async (server) => {
                     socket.nickname = nickname;
 
                     console.log(`[SYSTEM] room update: ${roomId} (users: ${nickname}, total: ${users.length}/5)`);
-                    io.to(roomId).emit('room_update', { roomId, users });
+                    emitRoomUpdate(roomId, users);
 
                     if (isStarted) {
                         console.log(`[SYSTEM] room ${roomId} is now ready to start!`);
@@ -168,9 +264,7 @@ module.exports = async (server) => {
 
                         const topicData = await assignTopic(pubClient, roomId);
                         if (topicData) {
-                            const { topic, currentRound, totalRounds, drawer } = topicData;
-                            io.to(roomId).except(drawer.id).emit('round_start', { currentRound, totalRounds, drawer });
-                            io.to(drawer.id).emit('round_start', { currentRound, totalRounds, drawer, topic });
+                            emitRoundStart(roomId, topicData);
                             startTimer(roomId, handleRoundEnd);
                         }
                     }
@@ -202,22 +296,30 @@ module.exports = async (server) => {
                 socket.lastChatTime = now;
 
                 if (roomId && message.trim()) {
-                    io.to(roomId).emit('receive_chat', {
-                        sender: nickname,
-                        message,
-                        timestamp: now
-                    });
-                    console.log(`[CHAT][${roomId}] ${nickname}: ${message}`);
+                    const base = { sender: nickname, message, timestamp: now };
 
-                    // 정답 확인 → 정답 즉시 라운드 종료
-                    const answerResult = await checkAnswer(pubClient, roomId, socket.id, message, inAnswer);
-                    if (answerResult?.isCorrect) {
-                        io.to(roomId).emit('correct_answer', {
-                            nickname: answerResult.player.nickname,
-                            point: answerResult.point,
-                            scores: answerResult.scores,
-                        });
-                        await handleRoundEnd(roomId);
+                    if (inAnswer) {
+                        const answerResult = await checkAnswer(pubClient, roomId, socket.id, message, true);
+                        const chatEntry =
+                            answerResult != null
+                                ? { ...base, type: 'answer', isWrong: !answerResult.isCorrect }
+                                : base;
+                        await addChatLog(pubClient, roomId, chatEntry);
+                        io.to(roomId).emit('receive_chat', chatEntry);
+                        console.log(`[CHAT][${roomId}] ${nickname}: ${message}`);
+
+                        if (answerResult?.isCorrect) {
+                            io.to(roomId).emit('correct_answer', {
+                                nickname: answerResult.player.nickname,
+                                point: answerResult.point,
+                                scores: answerResult.scores,
+                            });
+                            await handleRoundEnd(roomId);
+                        }
+                    } else {
+                        await addChatLog(pubClient, roomId, base);
+                        io.to(roomId).emit('receive_chat', base);
+                        console.log(`[CHAT][${roomId}] ${nickname}: ${message}`);
                     }
                 }
             } catch (err) {
@@ -226,12 +328,11 @@ module.exports = async (server) => {
         });
 
         // 드로잉 로직 Drawing logic
-        socket.on('draw_data', (data) => {
+        socket.on('draw_data', async (data) => {
             try {
                 const roomId = socket.currentRoom;
                 if (roomId) {
-                    // socket.to(roomId)는 나를 제외한 해당 방의 모든 유저에게 전송 socket.to(roomId) sends to all users in the room except myself
-                    // 내가 그린 건 이미 내 화면에 그려졌으니 중복 방지 to avoid duplication since my drawing is already on my canvas
+                    await addStroke(pubClient, roomId, data);
                     socket.to(roomId).emit('receive_draw', data);
                 }
             } catch (err) {
@@ -240,11 +341,11 @@ module.exports = async (server) => {
         });
 
         // 캔버스 지우기 로직 Canvas clear logic 
-        socket.on('clear_canvas', () => {
+        socket.on('clear_canvas', async () => {
             try {
                 const roomId = socket.currentRoom;
                 if (roomId) {
-                    // 지우기는 모든 유저(나 포함)의 화면을 동시에 지움 Clear everyone's canvas at the same time, including mine
+                    await clearCurrentStrokes(pubClient, roomId);
                     io.to(roomId).emit('clear_canvas');
                 }
             } catch (err) {
@@ -253,10 +354,11 @@ module.exports = async (server) => {
         });
 
         // 마지막 stroke 되돌리기 Undo last stroke
-        socket.on('undo_draw', () => {
+        socket.on('undo_draw', async () => {
             try {
                 const roomId = socket.currentRoom;
                 if (roomId) {
+                    await popLastStroke(pubClient, roomId);
                     socket.to(roomId).emit('undo_draw');
                 }
             } catch (err) {
@@ -265,10 +367,11 @@ module.exports = async (server) => {
         });
 
         // stroke 지우기 (지우개) Erase strokes by id
-        socket.on('erase_draw', (data) => {
+        socket.on('erase_draw', async (data) => {
             try {
                 const roomId = socket.currentRoom;
                 if (roomId && Array.isArray(data?.strokeIds)) {
+                    await removeStrokesByIds(pubClient, roomId, data.strokeIds);
                     socket.to(roomId).emit('erase_draw', { strokeIds: data.strokeIds });
                 }
             } catch (err) {
@@ -285,7 +388,16 @@ module.exports = async (server) => {
                     const nickname = socket.nickname;
 
                     // 즉시 지우지 않고 '비활성화' 처리 Mark as inactive instead of immediate removal
-                    await markUserInactive(pubClient, roomId, socketId);
+                    const room = await markUserInactive(pubClient, roomId, socketId);
+                    if (room) {
+                        emitRoomUpdate(roomId, room.users);
+                    }
+
+                    const { needsRoundRefresh } = await markPlayerInactive(pubClient, roomId, socketId);
+                    if (needsRoundRefresh) {
+                        await refreshRoundAfterDrawerChange(roomId);
+                    }
+
                     console.log(`[SYSTEM] User marked as inactive: ${socket.nickname} (${reason}) from room ${socket.currentRoom}. Waiting for 10 seconds before final removal.`);
                     
                     const timer = setTimeout(async () => {
@@ -295,16 +407,18 @@ module.exports = async (server) => {
                             if (result) {
                                 const { users } = result;
 
-                                console.log(`[SYSTEM] Room ${socket.currentRoom} updated. Total: ${users.length}`);
+                                console.log(`[SYSTEM] Room ${roomId} updated. Total: ${users.length}`);
 
-                                io.to(roomId).emit('room_update', {
-                                    roomId: socket.currentRoom,
-                                    users: users
-                                });
+                                const { needsRoundRefresh: needsRefresh } = await removePlayerFromGame(pubClient, roomId, socketId);
+                                if (needsRefresh) {
+                                    await refreshRoundAfterDrawerChange(roomId);
+                                }
+
+                                emitRoomUpdate(roomId, users);
 
                                 await handlePlayerLeave(roomId, socketId, users);
                             } else {
-                                console.log(`[SYSTEM] Room ${socket.currentRoom} is now empty and removed from Redis.`);
+                                console.log(`[SYSTEM] Room ${roomId} is now empty and removed from Redis.`);
                             }
                         } catch (err) {
                             console.error("[CLEANUP ERROR]", err);

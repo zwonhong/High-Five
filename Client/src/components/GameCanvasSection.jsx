@@ -1,3 +1,4 @@
+import "../styles/GameCanvasSection.css";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -32,6 +33,8 @@ function GameCanvasSection({
   const [currentStroke, setCurrentStroke] = useState(null);
   // 전체 stroke 저장
   const [strokes, setStrokes] = useState([]);
+  const pendingCanvasStrokes = useSocketStore((state) => state.pendingCanvasStrokes);
+  const setPendingCanvasStrokes = useSocketStore((state) => state.setPendingCanvasStrokes);
 
   // canvas 초기화
   useEffect(() => {
@@ -46,6 +49,82 @@ function GameCanvasSection({
     ctx.lineWidth = PEN_WIDTH;
 
   }, []);
+
+  // 실제 선 그리기
+  const drawStroke = (points, color) => {
+
+    const canvas = canvasRef.current;
+
+    const ctx = canvas.getContext("2d");
+
+    if (points.length < 2) {
+      return;
+    }
+
+    ctx.strokeStyle = color;
+
+    ctx.lineWidth = PEN_WIDTH;
+
+    ctx.beginPath();
+
+    ctx.moveTo(points[0].x, points[0].y);
+
+    for (let i = 1; i < points.length; i++) {
+
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+
+    ctx.stroke();
+  };
+
+  // canvas 다시 그리기
+  const redrawCanvas = (tempStroke = null) => {
+
+    const canvas = canvasRef.current;
+
+    const ctx = canvas.getContext("2d");
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "white";
+
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    strokes.forEach((stroke) => {
+
+      drawStroke(stroke.points, stroke.color);
+
+    });
+
+    if (tempStroke) {
+
+      drawStroke(tempStroke.points, tempStroke.color);
+
+    }
+  };
+
+  // 전체 초기화 (clear_canvas 수신 시 호출)
+  const clearCanvasLocally = () => {
+
+    const canvas = canvasRef.current;
+
+    const ctx = canvas.getContext("2d");
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "white";
+
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    setStrokes([]);
+  };
+
+  // 재연결 시 서버 스트로크 (마운트 전 reconnect_success 대비)
+  useEffect(() => {
+    if (pendingCanvasStrokes === null) return;
+    setStrokes(pendingCanvasStrokes);
+    setPendingCanvasStrokes(null);
+  }, [pendingCanvasStrokes, setPendingCanvasStrokes]);
 
   // 다른 사람 stroke 수신
   useEffect(() => {
@@ -69,19 +148,28 @@ function GameCanvasSection({
       setStrokes((prev) => prev.filter((s) => !strokeIds.includes(s.id)));
     };
 
+    const onReconnectSuccess = (data) => {
+      if (Array.isArray(data?.strokes)) {
+        setStrokes(data.strokes);
+        setPendingCanvasStrokes(null);
+      }
+    };
+
     socketClient.on('receive_draw', onReceiveDraw);
     socketClient.on('clear_canvas', onClearCanvas);
     socketClient.on('undo_draw', onUndoDraw);
     socketClient.on('erase_draw', onEraseDraw);
+    socketClient.on('reconnect_success', onReconnectSuccess);
 
     return () => {
       socketClient.off('receive_draw', onReceiveDraw);
       socketClient.off('clear_canvas', onClearCanvas);
       socketClient.off('undo_draw', onUndoDraw);
       socketClient.off('erase_draw', onEraseDraw);
+      socketClient.off('reconnect_success', onReconnectSuccess);
     };
 
-  }, []);
+  }, [setPendingCanvasStrokes]);
 
   // 라운드 종료 시 캔버스 초기화 emit (drawer만)
   useEffect(() => {
@@ -101,9 +189,10 @@ function GameCanvasSection({
 
     redrawCanvas();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [strokes]);
 
-  // 좌표 계산
+  // 마우스 좌표 계산
   const getMousePosition = (e) => {
 
     const canvas = canvasRef.current;
@@ -202,59 +291,6 @@ function GameCanvasSection({
     setCurrentStroke(null);
   };
 
-  // canvas 다시 그리기
-  const redrawCanvas = (tempStroke = null) => {
-
-    const canvas = canvasRef.current;
-
-    const ctx = canvas.getContext("2d");
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "white";
-
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    strokes.forEach((stroke) => {
-
-      drawStroke(stroke.points, stroke.color);
-
-    });
-
-    if (tempStroke) {
-
-      drawStroke(tempStroke.points, tempStroke.color);
-
-    }
-  };
-
-  // 실제 선 그리기
-  const drawStroke = (points, color) => {
-
-    const canvas = canvasRef.current;
-
-    const ctx = canvas.getContext("2d");
-
-    if (points.length < 2) {
-      return;
-    }
-
-    ctx.strokeStyle = color;
-
-    ctx.lineWidth = PEN_WIDTH;
-
-    ctx.beginPath();
-
-    ctx.moveTo(points[0].x, points[0].y);
-
-    for (let i = 1; i < points.length; i++) {
-
-      ctx.lineTo(points[i].x, points[i].y);
-    }
-
-    ctx.stroke();
-  };
-
   const handleUndo = () => {
 
     if (!isDrawer) {
@@ -263,6 +299,99 @@ function GameCanvasSection({
 
     setStrokes((prev) => prev.slice(0, -1));
     socketClient.emit('undo_draw');
+  };
+
+  // 터치 좌표 계산
+  const getTouchPosition = (e) => {
+
+    const canvas = canvasRef.current;
+
+    const rect = canvas.getBoundingClientRect();
+
+    const touch = e.touches[0];
+
+    return {
+      x: (touch.clientX - rect.left) * (canvas.width / rect.width),
+      y: (touch.clientY - rect.top) * (canvas.height / rect.height)
+    };
+  };
+
+  // 터치 시작
+  const handleTouchStart = (e) => {
+
+    e.preventDefault();
+
+    if (!isDrawer) return;
+
+    const pos = getTouchPosition(e);
+
+    if (currentTool === "eraser") {
+
+      eraseStroke(pos);
+
+      return;
+    }
+
+    setIsDrawing(true);
+
+    setCurrentStroke({
+
+      points: [pos],
+
+      color: currentColor,
+
+      width: PEN_WIDTH,
+
+      tool: "pen"
+
+    });
+  };
+
+  // 터치 이동
+  const handleTouchMove = (e) => {
+
+    e.preventDefault();
+
+    if (!isDrawing) return;
+
+    const newPoint = getTouchPosition(e);
+
+    setCurrentStroke((prev) => {
+
+      const updatedStroke = {
+
+        ...prev,
+
+        points: [...prev.points, newPoint]
+
+      };
+
+      redrawCanvas(updatedStroke);
+
+      return updatedStroke;
+    });
+  };
+
+  // 터치 종료 → draw_data emit
+  const handleTouchEnd = () => {
+
+    if (!isDrawing || !currentStroke) return;
+
+    setIsDrawing(false);
+
+    const newStroke = {
+
+      id: Date.now(),
+
+      ...currentStroke
+
+    };
+
+    setStrokes((prev) => [...prev, newStroke]);
+
+    socketClient.emit('draw_data', newStroke);
+
+    setCurrentStroke(null);
   };
 
   const eraseStroke = (clickPos) => {
@@ -284,25 +413,8 @@ function GameCanvasSection({
     socketClient.emit('erase_draw', { strokeIds });
   };
 
-  // 전체 초기화 (clear_canvas 수신 시 호출)
-  const clearCanvasLocally = () => {
-
-    const canvas = canvasRef.current;
-
-    const ctx = canvas.getContext("2d");
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "white";
-
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    setStrokes([]);
-  };
-
   return (
-
-    <div className="canvas-section">
+    <div className="canvas-section mobile-canvas-area">
 
       {/* 주제 (출제자에게만 표시) */}
       <div className="topic-box common-box">
@@ -315,7 +427,6 @@ function GameCanvasSection({
 
       </div>
 
-      {/* 캔버스 */}
       <div className="canvas-box common-box">
 
         <canvas
@@ -323,112 +434,101 @@ function GameCanvasSection({
           ref={canvasRef}
 
           width={600}
-
           height={400}
 
-          style={{
-            width: "100%",
-            height: "100%",
-            backgroundColor: "white",
-
-            cursor:
-
-              currentTool === "eraser"
-                ? "pointer"
-                : (
-                  isDrawer
-                    ? "crosshair"
-                    : "not-allowed"
-                )
-          }}
+          className={`
+            game-canvas
+            ${currentTool === "eraser"
+              ? "cursor-eraser"
+              : (
+                isDrawer
+                  ? "cursor-draw"
+                  : "cursor-disabled"
+              )
+            }
+          `}
 
           onMouseDown={handleMouseDown}
-
           onMouseMove={handleMouseMove}
-
           onMouseUp={handleMouseUp}
-
           onMouseLeave={handleMouseUp}
+
+          // 모바일 캔버스 구현
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         />
 
       </div>
 
-      {/* 툴바 */}
       <div className="toolbar">
 
-        {/* 검정 펜 */}
         <button
           className="tool-button"
-
           onClick={() => {
 
             setCurrentColor("#000000");
 
             setCurrentTool("pen");
+
           }}
         >
           <Pencil
-            size={24}
+            className="tool-icon"
             strokeWidth={1.5}
           />
         </button>
 
-        {/* 파랑 펜 */}
         <button
           className="tool-button blue"
-
           onClick={() => {
 
             setCurrentColor("#0000ff");
 
             setCurrentTool("pen");
+
           }}
         >
           <Pencil
-            size={24}
+            className="tool-icon"
             color="blue"
             strokeWidth={1.5}
           />
         </button>
 
-        {/* 빨강 펜 */}
         <button
           className="tool-button red"
-
           onClick={() => {
 
             setCurrentColor("#ff0000");
 
             setCurrentTool("pen");
+
           }}
         >
           <Pencil
-            size={24}
+            className="tool-icon"
             color="red"
             strokeWidth={1.5}
           />
         </button>
 
-        {/* 지우개 */}
         <button
           className="tool-button"
-
           onClick={() => setCurrentTool("eraser")}
         >
           <Eraser
-            size={24}
+            className="tool-icon"
             strokeWidth={1.5}
           />
         </button>
 
-        {/* undo */}
         <button
           className="tool-button"
-
           onClick={handleUndo}
         >
           <Undo2
-            size={24}
+            className="tool-icon"
             strokeWidth={1.5}
           />
         </button>

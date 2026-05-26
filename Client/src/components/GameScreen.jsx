@@ -1,7 +1,7 @@
 import "../styles/common.css";
 import "../styles/GameScreen.css";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import GameLeftPanel from "./GameLeftPanel";
 import GameCanvasSection from "./GameCanvasSection";
@@ -12,27 +12,24 @@ import GameEndModal from "./GameEndModal";
 import GameTimeoutModal from "./GameTimeoutModal";
 import { useSocketStore } from "../stores/useSocketStore";
 import { socketClient } from "../socket/socketClient";
-
-// 라운드당 타이머 (서버와 동일하게 60초 고정)
-const TIME_LIMIT = 60;
+import { calcTimeLeftFromEndsAt } from "../utils/roundTimer";
 
 function GameScreen() {
 
   const nickname = useSocketStore((state) => state.nickname);
-  // 라운드 구분선을 채팅 목록에 추가할 때 사용
-  const addChatMessage = useSocketStore((state) => state.addChatMessage);
   // 서버에서 받은 라운드 정보
   const currentRound = useSocketStore((state) => state.currentRound);
   const totalRounds = useSocketStore((state) => state.totalRounds);
+  const timeLeft = useSocketStore((state) => state.timeLeft);
+  const setTimeLeft = useSocketStore((state) => state.setTimeLeft);
+  const roundEndsAt = useSocketStore((state) => state.roundEndsAt);
   // 최근 정답자 정보 (결과 모달 표시용)
   const correctAnswerInfo = useSocketStore((state) => state.correctAnswerInfo);
   // 게임 종료 데이터 (game_end 수신 시 갱신)
   const gameEndData = useSocketStore((state) => state.gameEndData);
-
   // 라운드 진행 여부
   const [isRoundEnded, setIsRoundEnded] = useState(false);
-  // 타이머
-  const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
+  const nextRoundTimerRef = useRef(null);
   // 결과 모달
   const [showGameResultModal, setShowGameResultModal] = useState(false);
   // 다음 라운드 모달
@@ -43,28 +40,21 @@ function GameScreen() {
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
 
 
-  // 타이머
+  // 타이머 — 서버 roundEndsAt 기준으로 매 tick 재계산 (클라이언트마다 -1 방식 제거)
   useEffect(() => {
-
-    // 라운드 종료 상태면 정지
-    if (isRoundEnded) {
+    if (!roundEndsAt || isRoundEnded) {
       return;
     }
 
-    // 클라이언트 타임아웃
-    if (timeLeft <= 0) {
-      setIsRoundEnded(true);
-      setShowTimeoutModal(true);
-      return;
-    }
+    const tick = () => {
+      setTimeLeft(calcTimeLeftFromEndsAt(roundEndsAt));
+    };
 
-    const timer = setTimeout(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
+    tick();
+    const intervalId = setInterval(tick, 250);
 
-    return () => clearTimeout(timer);
-
-  }, [timeLeft, isRoundEnded]);
+    return () => clearInterval(intervalId);
+  }, [roundEndsAt, isRoundEnded, setTimeLeft]);
 
   // 소켓 이벤트 → UI 상태 제어 (데이터 싱크는 useSocketEvents에서 처리)
   useEffect(() => {
@@ -85,14 +75,14 @@ function GameScreen() {
       setShowTimeoutModal(false);
       setShowNextRoundModal(true);
 
-      setTimeout(() => {
+      if (nextRoundTimerRef.current) clearTimeout(nextRoundTimerRef.current);
+      nextRoundTimerRef.current = setTimeout(() => {
         setShowNextRoundModal(false);
       }, 1500);
     };
 
-    // 라운드 시작 → 서버 타이머와 동기화
+    // 라운드 시작 (남은 시간은 useSocketEvents → 스토어에서 동기화)
     const onRoundStart = () => {
-      setTimeLeft(TIME_LIMIT);
       setIsRoundEnded(false);
     };
 
@@ -114,46 +104,19 @@ function GameScreen() {
       socketClient.off('round_end', onRoundEnd);
       socketClient.off('next_round', onNextRound);
       socketClient.off('game_end', onGameEnd);
+      if (nextRoundTimerRef.current) clearTimeout(nextRoundTimerRef.current);
     };
 
   }, []);
 
-  // answer_correct 수신 테스트 (소켓 연결 전 UI 확인용)
-  const handleAnswerCorrect = () => {
-    console.log("answer_correct 테스트");
-    setIsRoundEnded(true);
-    setShowGameResultModal(true);
-  };
-
   const handleNextRound = () => {
     setShowGameResultModal(false);
     setShowTimeoutModal(false);
-
-    if (currentRound >= totalRounds) {
-      setIsRoundEnded(true);
-      setShowGameEndModal(true);
-      return;
-    }
-
-    // 채팅 라운드 구분선 추가
-    addChatMessage({
-      type: "round",
-      round: currentRound + 1
-    });
-
-    setShowNextRoundModal(true);
-
-    setTimeout(() => {
-      setShowNextRoundModal(false);
-      setTimeLeft(TIME_LIMIT);
-
-      setTimeout(() => {
-        setIsRoundEnded(false);
-      }, 0);
-    }, 1500);
   };
 
   return (
+
+    
 
     <div className="game-wrapper">
 
@@ -169,68 +132,56 @@ function GameScreen() {
           timeLeft={timeLeft}
         />
 
-        {
-          showGameResultModal && (
-
-            <GameResultModal
-              winner={correctAnswerInfo?.nickname ?? nickname}
-              currentRound={currentRound}
-              maxRound={totalRounds}
-              onNextRound={handleNextRound}
-              setShowGameResultModal={setShowGameResultModal}
-              setShowGameEndModal={setShowGameEndModal}
-            />
-
-          )
-        }
-
-        {
-          showNextRoundModal && (
-
-            <GameNextRoundModal
-              round={currentRound}
-            />
-
-          )
-        }
-
-        {
-          showGameEndModal && gameEndData && (
-
-            <GameEndModal
-              gameEndData={gameEndData}
-            />
-
-          )
-        }
-
-        {
-          showTimeoutModal && (
-
-            <GameTimeoutModal
-              currentRound={currentRound}
-              maxRound={totalRounds}
-              onNextRound={handleNextRound}
-              setShowTimeoutModal={setShowTimeoutModal}
-              setShowGameEndModal={setShowGameEndModal}
-            />
-
-          )
-        }
-
-        <button
-          style={{
-            position: "absolute",
-            top: "20px",
-            right: "20px",
-            zIndex: 9999
-          }}
-          onClick={handleAnswerCorrect}
-        >
-          answer_correct 테스트
-        </button>
-
       </div>
+
+      {
+        showGameResultModal && (
+
+          <GameResultModal
+            winner={correctAnswerInfo?.nickname ?? nickname}
+            currentRound={currentRound}
+            maxRound={totalRounds}
+            onNextRound={handleNextRound}
+            setShowGameResultModal={setShowGameResultModal}
+            setShowGameEndModal={setShowGameEndModal}
+          />
+
+        )
+      }
+
+      {
+        showNextRoundModal && (
+
+          <GameNextRoundModal
+            round={currentRound}
+          />
+
+        )
+      }
+
+      {
+        showGameEndModal && gameEndData && (
+
+          <GameEndModal
+            gameEndData={gameEndData}
+          />
+
+        )
+      }
+
+      {
+        showTimeoutModal && (
+
+          <GameTimeoutModal
+            currentRound={currentRound}
+            maxRound={totalRounds}
+            onNextRound={handleNextRound}
+            setShowTimeoutModal={setShowTimeoutModal}
+            setShowGameEndModal={setShowGameEndModal}
+          />
+
+        )
+      }
 
     </div>
   );

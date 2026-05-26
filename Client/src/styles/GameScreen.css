@@ -27,411 +27,75 @@
   box-sizing: border-box;
 }
 
+/* 태블릿 */
+@media (max-width: 992px) {
 
-/* LEFT PANEL */
+  .game-wrapper {
 
-.left-panel {
+    align-items: flex-start;
 
-  width: var(--left-width);
+    padding: 20px 0;
 
-  display: flex;
-  flex-direction: column;
+    overflow-y: auto;
+  }
 
-  gap: var(--inner-gap);
+  .game-layout {
+
+    width: 100%;
+
+    grid-template-columns:
+      1fr
+      1.4fr
+      1fr;
+
+    column-gap: 16px;
+
+    padding: 16px;
+  }
+
 }
 
+/* 모바일 */
+@media (max-width: 576px) {
 
-/* 내 정보 */
+  .game-wrapper {
 
-.info-box {
+    height: auto;
 
-  width: 100%;
+    min-height: 100vh;
 
-  height: calc(var(--ui-scale) * 0.12);
+    align-items: flex-start;
 
-  display: flex;
+    overflow-y: auto;
 
-  justify-content: center;
-  align-items: center;
-}
+    padding: 0;
+  }
 
+  .game-layout {
 
-/* 채팅 */
+    width: 100%;
 
-.chat-box {
+    display: grid;
 
-  width: 100%;
+    grid-template-columns: 1fr 1fr;
 
-  height: calc(var(--ui-scale) * 0.5);
+    grid-template-areas:
 
-  display: flex;
+      "chat chat"
 
-  flex-direction: column;
+      "topic timer"
 
-  padding: calc(var(--ui-scale) * 0.02);
+      "canvas canvas"
 
-  gap: calc(var(--ui-scale) * 0.02);
-}
+      "userinfo userinfo"
 
+      "users users";
 
-/* 채팅 헤더 
+    gap: 12px;
 
-.chat-header {
+    padding: 12px;
 
-  width: fit-content;
+    box-sizing: border-box;
+  }
 
-  padding:
-    calc(var(--ui-scale) * 0.01)
-    calc(var(--ui-scale) * 0.03);
-
-  border-radius: var(--radius);
-
-  background: white;
-
-  font-size: var(--font-size);
-}
-*/
-
-
-/* 채팅 작성 바 */
-.chat-input-wrapper {
-
-  display: flex;
-
-  align-items: center;
-
-  width: 100%;
-
-  background: white;
-
-  border-radius: var(--radius);
-
-  padding: calc( 5px * var(--scale));
-
-  gap: calc( 5px * var(--scale));
-}
-
-.chat-input {
-
-  flex: 1;
-
-  border: none;
-
-  outline: none;
-
-  background: transparent;
-
-  font-size: calc( 5px * var(--scale));
-
-  padding-left: calc( 8px * var(--scale));
-
-  border-radius: var(--radius);
-}
-
-.chat-send-button {
-
-  width: calc(30px * var(--scale));
-  height: calc(30px * var(--scale));
-
-  border: none;
-
-  border-radius: var(--radius);
-
-  background: #5edfff;
-
-  cursor: pointer;
-
-  font-size: calc(18px * var(--scale));
-
-  transition: 0.1s;
-
-  flex-shrink: 0;
-}
-
-.chat-send-button:hover {
-
-  background: #37d2ff;
-
-  transform: translateY(-0.5px);
-}
-
-.chat-send-button:active {
-
-  transform: scale(0.95);
-}
-
-/* 채팅 메시지 */
-
-.answer-message {
-
-  color: #4dfcff;
-
-  font-weight: bold;
-}
-
-.round-divider {
-
-  width: 100%;
-
-  text-align: center;
-
-  margin: 3px 0;
-
-  font-weight: bold;
-
-  color: #666;
-}
-
-.chat-messages {
-
-  flex: 1;
-
-  overflow-y: auto;
-  
-}
-
-.normal-message {
-
-  color: black;
-}
-
-.answer-message {
-
-  color: #000000;
-
-  font-weight: bold;
-
-  background-color: rgba(0, 255, 242, 0.293);
-
-  border-radius: 20px;
-
-  padding: 2px 5px;
-}
-
-.wrong-message {
-  color: #000000;
-
-  background-color: rgba(255, 0, 0, 0.453);
-
-  border: 3px solid rgb(255, 0, 0);
-
-  border-radius: 20px;
-
-  padding: 2px 2px;
-
-  opacity: 0.9;
-
-  animation: wrongShake 0.35s ease;
-}
-
-/* 가이드 */
-
-.guide-box {
-
-  width: 100%;
-
-  flex: 1;
-
-  display: flex;
-
-  justify-content: center;
-  align-items: center;
-}
-
-
-/* CENTER */
-
-.canvas-section {
-
-  width: var(--ui-scale);
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-
-  gap: var(--inner-gap);
-}
-
-
-/* 주제 */
-
-.topic-box {
-
-  width: 100%;
-
-  height: calc(var(--ui-scale) * 0.1);
-
-  padding: 0 calc(var(--ui-scale) * 0.03);
-
-  display: flex;
-
-  align-items: center;
-}
-
-
-/* 캔버스 */
-
-.canvas-box {
-
-  width: 100%;
-
-  aspect-ratio: 1 / 1;
-
-  background-color: #f8f9fa;
-
-  display: flex;
-
-  justify-content: center;
-  align-items: center;
-
-  font-size: calc(var(--font-size) * 1.5px);
-}
-
-
-/* 툴바 */
-
-.toolbar {
-
-  width: 100%;
-
-  height: calc(var(--ui-scale) * 0.12);
-
-  display: flex;
-
-  justify-content: center;
-  align-items: center;
-
-  gap: calc(var(--ui-scale) * 0.02);
-
-  padding: calc(var(--ui-scale) * 0.015);
-
-  background: rgba(255, 255, 255, 0.7);
-
-  border-radius: calc(var(--ui-scale) * 0.03);
-
-  backdrop-filter: blur(8px);
-
-  box-shadow:
-    0 calc(4px * var(--scale))
-    calc(12px * var(--scale))
-    rgba(0,0,0,0.12);
-}
-
-
-/* 툴바 버튼 */
-
-.tool-button {
-
-  width: calc(var(--ui-scale) * 0.08);
-  height: calc(var(--ui-scale) * 0.08);
-
-  border: none;
-
-  border-radius: calc(var(--ui-scale) * 0.02);
-
-  background: white;
-
-  display: flex;
-
-  justify-content: center;
-  align-items: center;
-
-  cursor: pointer;
-
-  font-size: calc(var(--ui-scale) * 0.03);
-
-  transition:
-    transform 0.12s ease,
-    background 0.12s ease,
-    box-shadow 0.12s ease;
-
-  box-shadow:
-    0 calc(2px * var(--scale))
-    calc(6px * var(--scale))
-    rgba(0,0,0,0.1);
-}
-
-
-/* hover */
-
-.tool-button:hover {
-
-  background: #d4d4d4;
-
-  transform: translateY(calc(-2px * var(--scale)));
-
-  box-shadow:
-    0 calc(5px * var(--scale))
-    calc(14px * var(--scale))
-    rgba(0,0,0,0.15);
-}
-
-.tool-button.blue:hover {
-
-  background: #c8ccff;
-}
-
-.tool-button.red:hover {
-
-  background: #fed0d0;
-}
-
-
-
-/* RIGHT PANEL */
-
-.right-panel {
-
-  width: var(--right-width);
-
-  display: flex;
-  flex-direction: column;
-
-  justify-content: space-between;
-}
-
-
-/* 유저 목록 */
-
-.user-list {
-
-  display: flex;
-  flex-direction: column;
-
-  gap: var(--user-gap);
-}
-
-
-/* 유저 박스 */
-
-.user-box {
-
-  width: 100%;
-
-  height: calc(var(--ui-scale) * 0.08);
-
-  display: flex;
-
-  justify-content: center;
-  align-items: center;
-}
-
-
-/* 타이머 */
-
-.timer-box {
-
-  width: 100%;
-
-  height: calc(var(--ui-scale) * 0.18);
-
-  display: flex;
-
-  justify-content: center;
-  align-items: center;
-
-  font-size: calc(var(--font-size) * 1.8);
-
-  font-weight: bold;
 }
