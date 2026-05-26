@@ -70,7 +70,7 @@
 
   position: relative;
 
-  width: clamp(260px, 38vw, 560px);
+  width: clamp(340px, 38vw, 560px);
 
   aspect-ratio: 1 / 1;
 
@@ -110,11 +110,11 @@
 /* arc 텍스트 스타일 */
 .arc-text textPath {
 
-  font-size: clamp(42px, 7vw, 100px);
+  font-size: clamp(70px, 7vw, 80px);
 
   font-weight: 900;
 
-  letter-spacing: clamp(-6px, -0.8vw, -13px);
+  letter-spacing: clamp(-2px, -0.7vw, -10px);
 
   fill: #00e3e3;
 

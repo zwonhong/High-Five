@@ -91,7 +91,7 @@ function StartScreen() {
                   textAnchor="middle"
                 >
 
-                  CATCH MIND
+                  HIGH-FIVE
 
                 </textPath>
 
